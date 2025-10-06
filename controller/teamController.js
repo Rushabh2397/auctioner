@@ -1,5 +1,4 @@
 const { Schema, default: mongoose } = require("mongoose");
-const players = require("../models/players");
 const team = require("../models/team");
 const tournament = require("../models/tournament");
 
@@ -80,6 +79,7 @@ module.exports = {
                                 'input': '$teams',
                                 'as': 't',
                                 'in': {
+                                    '_id': '$$t._id', // Include teamId
                                     'name': '$$t.name',
                                     'logo': '$$t.logo',
                                     'owner': '$$t.owner',
@@ -89,7 +89,8 @@ module.exports = {
                                         '$subtract': [
                                             '$totalBudget', '$$t.totalSpent'
                                         ]
-                                    }
+                                    },
+                                    'maxPlayersPerTeam': '$maxPlayersPerTeam' // Include maxPlayersPerTeam
                                 }
                             }
                         }
@@ -98,6 +99,7 @@ module.exports = {
                     '$project': {
                         'name': 1,
                         'totalBudget': 1,
+                        'maxPlayersPerTeam': 1,
                         'teams': 1
                     }
                 }

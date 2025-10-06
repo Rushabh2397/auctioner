@@ -4,6 +4,7 @@ const { Schema, model } = require('mongoose')
 const playerSchema = new Schema({
     name: { type: String },
     age: { type: Number },
+    gender : { type: String },
     photo: { type: String },
     skills: [{ type: String }],
     mobile: { type: Number },
@@ -15,7 +16,7 @@ const playerSchema = new Schema({
     auctionStatus: { type: Boolean },
     basePrice: { type: Number },
     amtSold: { type: Number },
-    iconPlayer: { type: Boolean }
+    playerCategory: { type: String }
 }, { collection: "player", timestamps: true })
 
 module.exports = model(playerSchema.options.collection, playerSchema);

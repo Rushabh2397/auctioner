@@ -7,7 +7,8 @@ const tournamentSchema = new Schema({
     noOfTeams: { type: Number },
     maxPlayersPerTeam: { type: Number },
     minPlayersPerTeam: { type: Number },
-    totalBudget: { type: Number }
+    totalBudget: { type: Number },
+    playerCategories: [{ type: String }]
 }, { collection: "tournament", timestamps: true });
 
-module.exports = model(tournamentSchema.options.collation, tournamentSchema);
+module.exports = model(tournamentSchema.options.collection, tournamentSchema);

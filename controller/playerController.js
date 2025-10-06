@@ -103,20 +103,20 @@ module.exports = {
     },
     nextAuctionPlayer: async (req, res) => {
         try {
-            const { touranmentId } = req.body;
-            const { playerCategory } = req.body;
+            const { touranmentId, playerCategory } = req.body;
 
             if (!touranmentId) {
                 return res.status(400).json({ message: "touranmentId is required" });
             }
 
+            // TODO Randomise 
             // Find the next player who is not sold and auctionStatus is false
             const nextPlayer = await players.findOne({
                 touranmentId: touranmentId,
                 sold: false,
-                auctionStatus: false,
+                auctionStatus: false, // TODO Fetch from FE
                 playerCategory: playerCategory // Filter by playerCategory if provided
-            }).sort({ createdAt: 1 }); // Sort by creation time to get the earliest added player
+            }); // Sort by creation time to get the earliest added player
 
             if (!nextPlayer) {
                 return res.status(404).json({ message: "No more players available for auction." });

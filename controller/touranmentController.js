@@ -1,19 +1,15 @@
-const tournament = require("../models/tournament")
+const tournamentService = require("../services/touranmentService");
+const { sendSuccess, sendError } = require("../utils");
+
+const addTournament = async (req, res) => {
+    try {
+        const tournament = await tournamentService.addTournamnet(req.body);
+        return sendSuccess(res, 201, "Tournament created Successfully!", tournament)
+    } catch (error) {
+        return sendError(res, 400, "Failed to add Tournamnet!", error)
+    }
+}
 
 module.exports = {
-    addTournamnet: async (req, res) => {
-        try {
-            const newTouranment = new tournament(req.body);
-            const savedTournamnet = await newTouranment.save()
-            return res.status(201).json({
-                messsge: "Tournamnet  addded successfully",
-                data: savedTournamnet
-            });
-        } catch (error) {
-            console.log("Error while creating tournamnet", error);
-            return res.status(400).json({
-                message: (error && error.message) || 'Oops! Failed to create tournament.'
-            })
-        }
-    }
+    addTournament
 }

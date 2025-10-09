@@ -53,9 +53,12 @@ module.exports = {
 
             const playersReport = await players.aggregate(aggregationPipeline);
 
+            // Randomize order of player report before returning
+            const shuffledPlayers = playersReport.sort(() => Math.random() - 0.5);
+
             return res.status(200).json({
                 message: "Player report fetched successfully",
-                data: playersReport
+                data: shuffledPlayers
             });
         } catch (error) {
             console.error("Error while fetching player report", error);
@@ -110,19 +113,27 @@ module.exports = {
                 return res.status(400).json({ message: "touranmentId is required" });
             }
 
-            // TODO Randomise 
-            // Find the next player who is not sold and auctionStatus is false
-            const nextPlayer = await players.findOne({
-                touranmentId: touranmentId,
+            // Randomize selection: use aggregation with $match + $sample
+            const match = {
+                touranmentId: new mongoose.Types.ObjectId(touranmentId),
                 sold: false,
-                auctionStatus: false, // TODO Fetch from FE
-                playerCategory: playerCategory // Filter by playerCategory if provided
-            }); // Sort by creation time to get the earliest added player
+                auctionStatus: false
+            };
+            if (playerCategory) match.playerCategory = playerCategory;
+
+            const pipeline = [
+                { $match: match },
+                { $sample: { size: 1 } }
+            ];
+
+            const result = await players.aggregate(pipeline);
+            const nextPlayer = (Array.isArray(result) && result.length > 0) ? result[0] : null;
 
             if (!nextPlayer) {
                 return res.status(404).json({ message: "No more players available for auction." });
             }
-// TODO Check if this is needed
+
+            // TODO Check if this is needed
             // // Update the auctionStatus of the found player to true
             // nextPlayer.auctionStatus = true;
             // await nextPlayer.save();

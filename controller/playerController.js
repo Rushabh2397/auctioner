@@ -45,7 +45,8 @@ module.exports = {
                         basePrice: 1,
                         amtSold: 1,
                         iconPlayer: 1,
-                        teamName: "$teamDetails.name"
+                        teamName: "$teamDetails.name",
+                        playerCategory: 1
                     }
                 }
             ];

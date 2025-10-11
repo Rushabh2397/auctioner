@@ -130,6 +130,7 @@ module.exports = {
               touranmentId: new mongoose.Types.ObjectId(touranmentId),
               sold: false,
               auctionStatus: false,
+                playerCategory: "Regular",
             },
             {
               touranmentId: new mongoose.Types.ObjectId(touranmentId),

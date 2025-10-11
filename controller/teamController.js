@@ -185,7 +185,8 @@ module.exports = {
                         'players': 1,
                         'tournament._id': 1,
                         'tournament.name': 1,
-                        'tournament.totalBudget': 1
+                        'tournament.totalBudget': 1,
+                        'tournament.maxPlayersPerTeam': 1
                     }
                 }
             ]

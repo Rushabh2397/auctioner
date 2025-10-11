@@ -127,12 +127,12 @@ module.exports = {
         match = {
           $or: [
             {
-              touranmentId: tournamentObjectId,
+              touranmentId: new mongoose.Types.ObjectId(touranmentId),
               sold: false,
               auctionStatus: false,
             },
             {
-              touranmentId: tournamentObjectId,
+              touranmentId: new mongoose.Types.ObjectId(touranmentId),
               sold: false,
               auctionStatus: true,
               playerCategory: "Icon",

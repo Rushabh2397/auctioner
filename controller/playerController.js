@@ -1,5 +1,5 @@
 const { Schema, default: mongoose } = require("mongoose");
-const players = require("../models/players_test");
+const players = require("../models/players");
 const { updateMany } = require("../models/tournamentHost");
 
 module.exports = {

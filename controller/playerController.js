@@ -115,6 +115,32 @@ module.exports = {
         return res.status(400).json({ message: "touranmentId is required" });
       }
 
+      // Special logic for Icon category
+      if (playerCategory === "Icon") {
+        // Check if there are any Icon players with auctionStatus = false
+        const iconPlayersCount = await players.countDocuments({
+          touranmentId: new mongoose.Types.ObjectId(touranmentId),
+          playerCategory: "Icon",
+          auctionStatus: false,
+          sold: false,
+        });
+
+        // If only 1 Icon player left (should be pushkar sancheti), fetch "pushkar sancheti"
+        if (iconPlayersCount === 1) {
+          const pushkarPlayer = await players.findOne({
+            touranmentId: new mongoose.Types.ObjectId(touranmentId),
+            name: { $regex: /pushkar  sancheti/i }, // Case-insensitive search
+          });
+
+          if (pushkarPlayer) {
+            return res.status(200).json({
+              message: "Next player for auction fetched successfully",
+              data: pushkarPlayer,
+            });
+          }
+        }
+      }
+
       // Randomize selection: use aggregation with $match + $sample
       let match = {
         touranmentId: new mongoose.Types.ObjectId(touranmentId),
@@ -122,6 +148,11 @@ module.exports = {
         auctionStatus: false,
       };
       if (playerCategory) match.playerCategory = playerCategory;
+
+      // For Icon category, exclude "pushkar sancheti" if there are other Icon players available
+      if (playerCategory === "Icon") {
+        match.name = { $not: { $regex: /pushkar  sancheti/i } };
+      }
 
       if (playerCategory === "Regular") {
         match = {

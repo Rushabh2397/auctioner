@@ -1,5 +1,5 @@
 const { Schema, default: mongoose } = require("mongoose");
-const players = require("../models/players");
+const players = require("../models/players_test");
 const { updateMany } = require("../models/tournamentHost");
 
 module.exports = {
@@ -125,11 +125,11 @@ module.exports = {
           sold: false,
         });
 
-        // If only 1 Icon player left (should be pushkar sancheti), fetch "pushkar sancheti"
-        if (iconPlayersCount === 1) {
+        // If only 2 Icon players left (should be pushkar sancheti), fetch "pushkar sancheti"
+        if (iconPlayersCount === 2) {
           const pushkarPlayer = await players.findOne({
             touranmentId: new mongoose.Types.ObjectId(touranmentId),
-            name: { $regex: /pushkar  sancheti/i }, // Case-insensitive search
+            name: { $regex: /pushkar sancheti/i }, // Case-insensitive search
           });
 
           if (pushkarPlayer) {
@@ -151,7 +151,7 @@ module.exports = {
 
       // For Icon category, exclude "pushkar sancheti" if there are other Icon players available
       if (playerCategory === "Icon") {
-        match.name = { $not: { $regex: /pushkar  sancheti/i } };
+        match.name = { $not: { $regex: /pushkar sancheti/i } };
       }
 
       if (playerCategory === "Regular") {

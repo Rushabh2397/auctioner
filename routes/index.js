@@ -21,6 +21,7 @@ router.post("/user/login", userController.login)
 // touranment route
 
 router.post("/tournament", touranmentController.addTournamnet)
+router.get("/tournament/all", touranmentController.getAllTournaments)
 
 
 // team route
@@ -34,6 +35,8 @@ router.post("/team/individual_report", teamController.individualTeamReport)
 router.post("/player/player_report", playerController.playerReport)
 router.post("/player/updatePlayer", playerController.updatePlayer)
 router.post("/player/nextAuctionPlayer", playerController.nextAuctionPlayer)
+router.post("/player/register", playerController.registerPlayer)
+router.post("/player/deletePlayer", playerController.deletePlayer)
 
 // auction route
 

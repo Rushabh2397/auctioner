@@ -1,0 +1,300 @@
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    AUCTIONER API ROUTE STRUCTURE                         │
+│                         Base URL: /api                                   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  📁 routes/index.js (Main Router)                                        │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+        ┌───────────────────────────┼───────────────────────────┐
+        │                           │                           │
+        ▼                           ▼                           ▼
+
+┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐
+│ 🏆 Tournament    │      │ 👤 User          │      │ 🎯 Player        │
+│    Host          │      │                  │      │                  │
+└──────────────────┘      └──────────────────┘      └──────────────────┘
+│                         │                         │
+├─ POST /register        ├─ POST /register        ├─ POST /register
+└─ POST /login           ├─ POST /login           ├─ POST /all
+                         └─ POST /detail          ├─ POST /detail
+                                                   ├─ POST /update
+                                                   ├─ POST /delete
+                                                   └─ POST /categories
+
+        ▼                           ▼                           ▼
+
+┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐
+│ 🏟️  Tournament   │      │ 🏏 Team          │      │ 🎪 Auction       │
+│                  │      │                  │      │                  │
+└──────────────────┘      └──────────────────┘      └──────────────────┘
+│                         │                         │
+├─ POST /register        ├─ POST /register        ├─ POST /next-player
+├─ GET  /all             ├─ POST /all             ├─ POST /player-categories
+├─ POST /detail          ├─ POST /detail          ├─ POST /notify-player-status
+└─ POST /update          ├─ POST /update          └─ POST /notify-team-status
+                         ├─ POST /names
+                         └─ POST /names-budget
+
+
+═══════════════════════════════════════════════════════════════════════════
+                        DETAILED API ENDPOINTS
+═══════════════════════════════════════════════════════════════════════════
+
+🏆 TOURNAMENT HOST (/api/touranmentHost)
+├─────────────────────────────────────────────────────────────────────────
+│  POST /register
+│  ├─ Purpose: Register new tournament host
+│  ├─ Body: { name, email, mobile, password }
+│  └─ Response: { success, data: hostDetails }
+│
+│  POST /login
+│  ├─ Purpose: Authenticate tournament host
+│  ├─ Body: { email, password }
+│  └─ Response: { success, token, data: hostInfo }
+└─────────────────────────────────────────────────────────────────────────
+
+👤 USER (/api/user)
+├─────────────────────────────────────────────────────────────────────────
+│  POST /register
+│  ├─ Purpose: Register new user/team owner
+│  ├─ Body: { name, email, mobile, password }
+│  └─ Response: { success, data: userDetails }
+│
+│  POST /login
+│  ├─ Purpose: Authenticate user
+│  ├─ Body: { email, password }
+│  └─ Response: { success, token, data: userInfo }
+│
+│  POST /detail
+│  ├─ Purpose: Get individual user details
+│  ├─ Body: { userId }
+│  └─ Response: { success, data: userDetails }
+└─────────────────────────────────────────────────────────────────────────
+
+🏟️  TOURNAMENT (/api/tournament)
+├─────────────────────────────────────────────────────────────────────────
+│  POST /register
+│  ├─ Purpose: Create new tournament
+│  ├─ Body: { name, startDate, endDate, teams, playersPerTeam, budget }
+│  └─ Response: { success, data: tournamentDetails }
+│
+│  GET /all
+│  ├─ Purpose: Get all tournaments
+│  └─ Response: { success, data: [tournaments] }
+│
+│  POST /detail
+│  ├─ Purpose: Get specific tournament details
+│  ├─ Body: { tournamentId }
+│  └─ Response: { success, data: tournamentDetails }
+│
+│  POST /update
+│  ├─ Purpose: Update tournament information
+│  ├─ Body: { tournamentId, name, startDate, budget, ... }
+│  └─ Response: { success, data: updatedTournament }
+└─────────────────────────────────────────────────────────────────────────
+
+🏏 TEAM (/api/team)
+├─────────────────────────────────────────────────────────────────────────
+│  POST /register
+│  ├─ Purpose: Register new team in tournament
+│  ├─ Body: { name, logo, touranmentId, owner, totalBudget }
+│  └─ Response: { success, data: teamDetails }
+│
+│  POST /all
+│  ├─ Purpose: Get all teams in tournament
+│  ├─ Body: { touranmentId }
+│  └─ Response: { success, data: [teams] }
+│
+│  POST /detail
+│  ├─ Purpose: Get individual team details
+│  ├─ Body: { teamId }
+│  └─ Response: { success, data: teamDetails }
+│
+│  POST /update
+│  ├─ Purpose: Update team information
+│  ├─ Body: { teamId, name, logo, owner, ... }
+│  └─ Response: { success, data: updatedTeam }
+│
+│  POST /names
+│  ├─ Purpose: Get team names only (lightweight)
+│  ├─ Body: { touranmentId }
+│  └─ Response: { success, data: [{ _id, name }] }
+│
+│  POST /names-budget
+│  ├─ Purpose: Get team names with budget info
+│  ├─ Body: { touranmentId }
+│  └─ Response: { success, data: [{ _id, name, totalBudget, remainingBudget }] }
+└─────────────────────────────────────────────────────────────────────────
+
+🎯 PLAYER (/api/player)
+├─────────────────────────────────────────────────────────────────────────
+│  POST /register
+│  ├─ Purpose: Register new player for auction
+│  ├─ Body: { name, age, photo, mobile, email, address, skills, 
+│  │          playerCategory, basePrice, touranmentId }
+│  └─ Response: { success, data: playerDetails }
+│
+│  POST /all
+│  ├─ Purpose: Get all players in tournament
+│  ├─ Body: { touranmentId }
+│  └─ Response: { success, data: [players] }
+│
+│  POST /detail
+│  ├─ Purpose: Get individual player details
+│  ├─ Body: { playerId }
+│  └─ Response: { success, data: playerDetails }
+│
+│  POST /update
+│  ├─ Purpose: Update player information
+│  ├─ Body: { playerId, name, age, sold, auctionStatus, amtSold, 
+│  │          teamId, ... }
+│  └─ Response: { success, data: updatedPlayer }
+│
+│  POST /delete
+│  ├─ Purpose: Delete player from tournament
+│  ├─ Body: { playerId }
+│  └─ Response: { success, message }
+│
+│  POST /categories
+│  ├─ Purpose: Get distinct player categories
+│  ├─ Body: { touranmentId }
+│  └─ Response: { success, data: ["Regular", "Icon", "Youth"] }
+└─────────────────────────────────────────────────────────────────────────
+
+🎪 AUCTION (/api/auction)
+├─────────────────────────────────────────────────────────────────────────
+│  POST /next-player
+│  ├─ Purpose: Get next player for auction
+│  ├─ Body: { touranmentId, playerCategory }
+│  └─ Response: { success, data: nextPlayer }
+│
+│  POST /player-categories
+│  ├─ Purpose: Get player categories with counts
+│  ├─ Body: { touranmentId }
+│  └─ Response: { success, data: [{ category, count }] }
+│
+│  POST /notify-player-status
+│  ├─ Purpose: Send WhatsApp notification about player
+│  ├─ Body: { playerId, playerName, teamName, soldAmount, 
+│  │          recipientNumber }
+│  └─ Response: { success, messageId }
+│
+│  POST /notify-team-status
+│  ├─ Purpose: Send WhatsApp notification to team
+│  ├─ Body: { teamId, teamName, message, recipientNumber }
+│  └─ Response: { success, messageId }
+└─────────────────────────────────────────────────────────────────────────
+
+
+═══════════════════════════════════════════════════════════════════════════
+                        REQUEST/RESPONSE FLOW
+═══════════════════════════════════════════════════════════════════════════
+
+CLIENT
+  │
+  │ HTTP Request
+  │ POST /api/player/all
+  │ Body: { touranmentId: "xxx" }
+  │
+  ▼
+SERVER (index.js)
+  │
+  │ Route to /player
+  │
+  ▼
+PLAYER ROUTER (playerRoutes.js)
+  │
+  │ Match POST /all
+  │
+  ▼
+PLAYER CONTROLLER (playerController.js)
+  │
+  │ Execute playerReport()
+  │
+  ▼
+DATABASE (MongoDB)
+  │
+  │ Query players collection
+  │
+  ▼
+RESPONSE
+  │
+  │ { success: true, data: [...] }
+  │
+  ▼
+CLIENT
+
+
+═══════════════════════════════════════════════════════════════════════════
+                        FILE STRUCTURE
+═══════════════════════════════════════════════════════════════════════════
+
+auctioner/
+├── server/
+│   └── index.js                    ← Express app setup
+├── routes/
+│   ├── index.js                    ← Main router (imports all)
+│   ├── tournamentHostRoutes.js     ← 2 endpoints
+│   ├── userRoutes.js               ← 3 endpoints
+│   ├── tournamentRoutes.js         ← 4 endpoints
+│   ├── teamRoutes.js               ← 6 endpoints
+│   ├── playerRoutes.js             ← 6 endpoints
+│   └── auctionRoutes.js            ← 4 endpoints
+├── controller/
+│   ├── tournamentHostController.js
+│   ├── userController.js
+│   ├── touranmentController.js
+│   ├── teamController.js
+│   ├── playerController.js
+│   └── auctionController.js
+├── models/
+│   ├── tournamentHost.js
+│   ├── user.js
+│   ├── tournament.js
+│   ├── team.js
+│   └── players.js
+└── utils/
+    ├── whatsappNotification.js
+    └── encryDecry.js
+
+
+═══════════════════════════════════════════════════════════════════════════
+                        NAMING CONVENTIONS
+═══════════════════════════════════════════════════════════════════════════
+
+✅ GOOD:
+  POST /team/register          - Clear action
+  POST /player/all             - Simple and descriptive
+  POST /auction/next-player    - Hyphenated multi-word
+  POST /team/names-budget      - Descriptive compound
+
+❌ AVOID:
+  POST /team/addTeam           - Redundant
+  POST /player/player_report   - Underscore naming
+  POST /teamReport             - camelCase in URL
+
+
+═══════════════════════════════════════════════════════════════════════════
+                        TOTAL API COUNT
+═══════════════════════════════════════════════════════════════════════════
+
+  🏆 Tournament Host:   2 endpoints
+  👤 User:              3 endpoints
+  🏟️  Tournament:       4 endpoints
+  🏏 Team:              6 endpoints
+  🎯 Player:            6 endpoints
+  🎪 Auction:           4 endpoints
+  ═══════════════════════════════
+  📊 TOTAL:            25 endpoints
+
+
+═══════════════════════════════════════════════════════════════════════════
+                        STATUS LEGEND
+═══════════════════════════════════════════════════════════════════════════
+
+✅ Fully Implemented       - Controller method exists and working
+⚠️  Needs Implementation   - Route exists, controller method needed
+🔄 Needs Migration         - Exists elsewhere, needs to be moved
+📝 Planned                 - Future enhancement

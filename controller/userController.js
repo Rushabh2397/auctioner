@@ -1,57 +1,77 @@
-const User = require("../models/user")
-const { decrypt, encrypt } = require('../utils/encryDecry')
+const userService = require("../services/userService");
+const { sendSuccess, sendError } = require("../utils");
+
+const createUser = async (req, res) => {
+    try {
+        const user = await userService.createUser(req.body);
+        return sendSuccess(res, 201, "User created successfully", user);
+    } catch (error) {
+        return sendError(res, 400, "Failed to create user", error);
+    }
+};
+
+const loginUser = async (req, res) => {
+    try {
+        const user = await userService.loginUser(req.body);
+        return sendSuccess(res, 200, "Login successful", user);
+    } catch (error) {
+        return sendError(res, 401, "Login failed", error);
+    }
+};
+
+const getUserDetail = async (req, res) => {
+    try {
+        const user = await userService.getUserDetail(req.body.userId);
+        return sendSuccess(res, 200, "User details fetched successfully", user);
+    } catch (error) {
+        return sendError(res, 400, "Failed to fetch user details", error);
+    }
+};
+
+const getUsersByCreator = async (req, res) => {
+    try {
+        const users = await userService.getUsersByCreator(req.body.creatorId);
+        return sendSuccess(res, 200, "Users fetched successfully", users);
+    } catch (error) {
+        return sendError(res, 400, "Failed to fetch users", error);
+    }
+};
+
+const getAllUsers = async (req, res) => {
+    try {
+        const users = await userService.getAllUsers(req.body);
+        return sendSuccess(res, 200, "All users fetched successfully", users);
+    } catch (error) {
+        return sendError(res, 400, "Failed to fetch users", error);
+    }
+};
+
+const updateUser = async (req, res) => {
+    try {
+        const user = await userService.updateUser(req.body);
+        return sendSuccess(res, 200, "User updated successfully", user);
+    } catch (error) {
+        return sendError(res, 400, "Failed to update user", error);
+    }
+};
+
+const deleteUser = async (req, res) => {
+    try {
+        const result = await userService.deleteUser(req.body.userId, req.body.hardDelete);
+        return sendSuccess(res, 200, result.message, result);
+    } catch (error) {
+        return sendError(res, 400, "Failed to delete user", error);
+    }
+};
 
 module.exports = {
-
-    adduser: async (req, res) => {
-        try {
-            const { name, email, password, tournamnetHostId } = req.body
-            const newUser = new User({
-                name,
-                email,
-                password,
-                tournamnetHostId
-            })
-
-            const saveduser = newUser.save(newUser);
-            return res.status(201).json({
-                messsge: "User addded successfully",
-                data: saveduser
-            });
-        } catch (error) {
-            console.log("Error while creating new user", error);
-            return res.status(400).json({
-                message: (error && error.message) || 'Oops! Failed to add new user.'
-            })
-        }
-
-    },
-    login: async (req, res) => {
-        try {
-            const user = await User.findOne({ email: req.body.email });
-            if (!user) {
-                return res.status(400).json({ message: "User not found" });
-            }
-            console.log("user", user)
-            console.log("REQ", req.body)
-
-            let passwordMatched = decrypt(req.body.password, user.password)
-            if (!passwordMatched) {
-                return res.status(400).json({ message: "Please check your email/password" });
-            }
-            return res.status(200).json({
-                message: "User logged in successfully",
-                data: {
-                    name: user.name,
-                    email: user.email,
-                    tournamnetHostId: user.tournamnetHostId
-                }
-            })
-        } catch (error) {
-            console.log("Error while  logging user", error);
-            return res.status(400).json({
-                message: (error && error.message) || 'Oops! Failed to login user.'
-            })
-        }
-    }
-}
+    createUser,
+    loginUser,
+    getUserDetail,
+    getUsersByCreator,
+    getAllUsers,
+    updateUser,
+    deleteUser,
+    // Legacy names for backward compatibility
+    login: loginUser
+};

@@ -2,19 +2,19 @@ const express = require('express');
 const router = express.Router();
 
 // Import all route modules
-const tournamentHostRouter = require('./tournamentHostRoutes');
 const userRouter = require('./userRoutes');
 const tournamentRouter = require('./tournamentRoutes');
 const teamRouter = require('./teamRoutes');
 const playerRouter = require('./playerRoutes');
 const auctionRouter = require('./auctionRoutes');
+const whatsappRouter = require('./whatsappRoutes');
 
 // Mount routes with their base paths
-router.use("/touranmentHost", tournamentHostRouter);
 router.use("/user", userRouter);
 router.use("/tournament", tournamentRouter);
 router.use("/team", teamRouter);
 router.use("/player", playerRouter);
 router.use("/auction", auctionRouter);
+router.use("/whatsapp", whatsappRouter);
 
 module.exports = router;

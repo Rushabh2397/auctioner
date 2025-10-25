@@ -2,13 +2,25 @@ const express = require('express');
 const userController = require('../controller/userController');
 const userRouter = express.Router();
 
-// Register User
-// userRouter.post("/register", userController.adduser);
+// User Login (public)
+userRouter.post("/login", userController.loginUser);
 
-// User Login
-// userRouter.post("/login", userController.login);
+// Create User (protected - requires permission check in frontend)
+userRouter.post("/create", userController.createUser);
 
 // Get User Details
-// userRouter.post("/detail", userController.getUserDetail);
+userRouter.post("/detail", userController.getUserDetail);
+
+// Get Users Created by a User
+userRouter.post("/my-users", userController.getUsersByCreator);
+
+// Get All Users (boss only)
+userRouter.post("/all", userController.getAllUsers);
+
+// Update User
+userRouter.post("/update", userController.updateUser);
+
+// Delete/Deactivate User
+userRouter.post("/delete", userController.deleteUser);
 
 module.exports = userRouter;

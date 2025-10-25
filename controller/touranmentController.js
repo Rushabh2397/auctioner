@@ -1,34 +1,101 @@
-const tournament = require("../models/tournament")
+const tournamentService = require("../services/tournamentService");
+const { sendSuccess, sendError } = require("../utils");
+
+const addTournamnet = async (req, res) => {
+    try {
+        // Extract user info from request (you may need to add auth middleware)
+        const { userId, userRole } = req.body; // Adjust based on your auth implementation
+        
+        const tournament = await tournamentService.createTournament(
+            req.body, 
+            userId, 
+            userRole
+        );
+        return sendSuccess(res, 201, "Tournament added successfully", tournament);
+    } catch (error) {
+        return sendError(res, 400, "Failed to create tournament", error);
+    }
+};
+
+const getAllTournaments = async (req, res) => {
+    try {
+        const { userRole, userId } = req.body; // Adjust based on your auth implementation
+        
+        let tournaments;
+        if (userRole === 'tournament_host') {
+            // Tournament hosts see only their tournaments
+            tournaments = await tournamentService.getTournamentsByHost(userId);
+        } else {
+            // Boss and super_user see all tournaments
+            tournaments = await tournamentService.getAllTournaments();
+        }
+        
+        return sendSuccess(res, 200, "Tournaments fetched successfully", tournaments);
+    } catch (error) {
+        return sendError(res, 500, "Failed to fetch tournaments", error);
+    }
+};
+
+const getTournamentDetail = async (req, res) => {
+    try {
+        const { tournamentId, userId, userRole } = req.body;
+        
+        const tournament = await tournamentService.getTournamentDetail(
+            tournamentId, 
+            userId, 
+            userRole
+        );
+        return sendSuccess(res, 200, "Tournament details fetched successfully", tournament);
+    } catch (error) {
+        return sendError(res, 400, "Failed to fetch tournament details", error);
+    }
+};
+
+const updateTournament = async (req, res) => {
+    try {
+        const { tournamentId, userId, userRole, ...updateData } = req.body;
+        
+        const tournament = await tournamentService.updateTournament(
+            tournamentId,
+            updateData,
+            userId,
+            userRole
+        );
+        return sendSuccess(res, 200, "Tournament updated successfully", tournament);
+    } catch (error) {
+        return sendError(res, 400, "Failed to update tournament", error);
+    }
+};
+
+const deleteTournament = async (req, res) => {
+    try {
+        const { tournamentId, userId, userRole } = req.body;
+        
+        const tournament = await tournamentService.deleteTournament(
+            tournamentId,
+            userId,
+            userRole
+        );
+        return sendSuccess(res, 200, "Tournament deleted successfully", tournament);
+    } catch (error) {
+        return sendError(res, 400, "Failed to delete tournament", error);
+    }
+};
+
+const getAllTournamentHosts = async (req, res) => {
+    try {
+        const hosts = await tournamentService.getAllTournamentHosts();
+        return sendSuccess(res, 200, "Tournament hosts fetched successfully", hosts);
+    } catch (error) {
+        return sendError(res, 500, "Failed to fetch tournament hosts", error);
+    }
+};
 
 module.exports = {
-    addTournamnet: async (req, res) => {
-        try {
-            const newTouranment = new tournament(req.body);
-            const savedTournamnet = await newTouranment.save()
-            return res.status(201).json({
-                messsge: "Tournamnet  addded successfully",
-                data: savedTournamnet
-            });
-        } catch (error) {
-            console.log("Error while creating tournamnet", error);
-            return res.status(400).json({
-                message: (error && error.message) || 'Oops! Failed to create tournament.'
-            })
-        }
-    },
-
-    getAllTournaments: async (req, res) => {
-        try {
-            const tournaments = await tournament.find({}).sort({ createdAt: -1 });
-            return res.status(200).json({
-                message: "Tournaments fetched successfully",
-                data: tournaments
-            });
-        } catch (error) {
-            console.log("Error while fetching tournaments", error);
-            return res.status(500).json({
-                message: (error && error.message) || 'Oops! Failed to fetch tournaments.'
-            })
-        }
-    }
-}
+    addTournamnet,
+    getAllTournaments,
+    getTournamentDetail,
+    updateTournament,
+    deleteTournament,
+    getAllTournamentHosts
+};

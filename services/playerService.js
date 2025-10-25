@@ -1,7 +1,8 @@
 const { Schema, default: mongoose } = require("mongoose");
 const players = require("../models/players");
-const { updateMany } = require("../models/tournamentHost");
+// const { updateMany } = require("../models/tournamentHost");
 const team = require("../models/team");
+const whatsappService = require("./whatsappService");
 
 const registerPlayer = async (playerInput) => {
     const player = await players.findOne({ touranmentId: playerInput.touranmentId, email: playerInput.email })
@@ -25,7 +26,48 @@ const getPlayerDetail = async (playerId) => {
 }
 
 const updatePlayer = async (playerInput) => {
-    const updatedPlayer = await players.findByIdAndUpdate(playerInput.playerId, playerInput, { new: true });
+    // Get the player before update to check if it's being marked as sold
+    const existingPlayer = await players.findById(playerInput.playerId);
+    
+    if (!existingPlayer) {
+        throw new Error("Player not found");
+    }
+
+    // Update the player
+    const updatedPlayer = await players.findByIdAndUpdate(
+        playerInput.playerId, 
+        playerInput, 
+        { new: true }
+    ).populate('teamId', 'name');
+
+    console.log('Updated Player:', updatedPlayer);
+    console.log('Existing Player:', existingPlayer);
+    console.log('Player Input:', playerInput);
+    // Check if player was just sold (wasn't sold before, but is sold now)
+    const wasJustSold = !existingPlayer.sold && (playerInput.sold === true || playerInput.sold === 1);
+    console.log('Was just sold:', wasJustSold);
+
+    // If player was just sold, send WhatsApp notification
+    if (wasJustSold && updatedPlayer) {
+        try {
+            // Get team name
+            const teamName = updatedPlayer.teamId?.name || 
+                            (playerInput.teamId ? 
+                             (await team.findById(playerInput.teamId))?.name : 
+                             'Unknown Team');
+
+            await whatsappService.sendPlayerSoldNotification({
+                name: updatedPlayer.name,
+                mobile: updatedPlayer.mobile,
+                teamName: teamName,
+                amtSold: updatedPlayer.amtSold || playerInput.amtSold
+            });
+        } catch (whatsappError) {
+            // Log error but don't fail the update
+            console.error('WhatsApp notification failed:', whatsappError.message);
+        }
+    }
+
     return updatedPlayer;
 }
 

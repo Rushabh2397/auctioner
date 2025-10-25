@@ -3,7 +3,6 @@ const { sendSuccess, sendError } = require("../utils");
 
 const playerCategories = async (req, res) => {
     try {
-        console.log("Request Body:", req.body);
         const categories = await auctionService.playerCategories(req.body.touranmentId);
         return sendSuccess(res, 200, "Player categories fetched successfully", categories);
     }

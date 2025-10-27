@@ -14,6 +14,9 @@ userRouter.post("/detail", userController.getUserDetail);
 // Get Users Created by a User
 userRouter.post("/my-users", userController.getUsersByCreator);
 
+// Get Users in Hierarchy (created by user and their descendants)
+userRouter.post("/hierarchy", userController.getUsersInHierarchy);
+
 // Get All Users (boss only)
 userRouter.post("/all", userController.getAllUsers);
 

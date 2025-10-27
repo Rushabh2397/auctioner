@@ -32,9 +32,9 @@ const sendPlayerSoldNotification = async (playerData) => {
             to: formattedMobile,
             type: "template",
             template: {
-                name: "auction_updates",
+                name: "auction_sold_message",
                 language: {
-                    code: "en_US"
+                    code: "en"
                 },
                 components: [
                     {
@@ -50,7 +50,11 @@ const sendPlayerSoldNotification = async (playerData) => {
                             },
                             {
                                 type: "text",
-                                text: amtSold ? `₹${amtSold}` : "N/A"
+                                text: amtSold ? `${amtSold}` : "N/A"
+                            },
+                            {
+                                type: "text",
+                                text: "Jain X Cup"
                             }
                         ]
                     }

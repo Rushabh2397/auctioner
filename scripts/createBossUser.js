@@ -5,7 +5,8 @@
  * Usage: node scripts/createBossUser.js
  */
 
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const mongoose = require('mongoose');
 const readline = require('readline');
 
@@ -20,6 +21,7 @@ async function createBossUser() {
   try {
     // Connect to MongoDB
     const mongoUri = process.env.MONGO_DB_URI || 'mongodb://127.0.0.1:27017/auctioner';
+    console.log('\n🔌 Connecting to MongoDB...', mongoUri);
     await mongoose.connect(mongoUri);
     console.log('✅ Connected to MongoDB\n');
 

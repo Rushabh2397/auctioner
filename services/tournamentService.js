@@ -88,8 +88,10 @@ const getTournamentDetail = async (tournamentId, userId, userRole) => {
             throw new Error("Tournament not found");
         }
 
-        // Tournament hosts can only view their own tournaments
-        if (userRole === 'tournament_host' && 
+        // Tournament hosts can only view their own tournaments (if they're logged in)
+        // Guest users (userRole = 'guest' or empty) can view any tournament
+        if (userRole === 'tournament_host' && userId && 
+            tournamentData.tournamentHostId && 
             tournamentData.tournamentHostId._id.toString() !== userId) {
             throw new Error("Unauthorized to view this tournament");
         }

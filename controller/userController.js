@@ -37,6 +37,15 @@ const getUsersByCreator = async (req, res) => {
     }
 };
 
+const getUsersInHierarchy = async (req, res) => {
+    try {
+        const users = await userService.getUsersInHierarchy(req.body.userId);
+        return sendSuccess(res, 200, "Users in hierarchy fetched successfully", users);
+    } catch (error) {
+        return sendError(res, 400, "Failed to fetch users in hierarchy", error);
+    }
+};
+
 const getAllUsers = async (req, res) => {
     try {
         const users = await userService.getAllUsers(req.body);
@@ -69,6 +78,7 @@ module.exports = {
     loginUser,
     getUserDetail,
     getUsersByCreator,
+    getUsersInHierarchy,
     getAllUsers,
     updateUser,
     deleteUser,

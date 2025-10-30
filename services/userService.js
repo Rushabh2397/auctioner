@@ -164,9 +164,58 @@ const getUsersByCreator = async (creatorId) => {
 
     const users = await User.find({ createdBy: creatorId })
         .select('-password')
+        .populate('createdBy', 'name email role')
         .sort({ createdAt: -1 });
     
     return users;
+};
+
+/**
+ * Get all users in hierarchy (created by user and their descendants)
+ * @param {string} userId - User ID
+ * @returns {Array} List of users in hierarchy
+ */
+const getUsersInHierarchy = async (userId) => {
+    if (!userId) {
+        throw new Error("User ID is required");
+    }
+
+    // Get the current user to check their role
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+        throw new Error("User not found");
+    }
+
+    // Boss can see all users
+    if (currentUser.role === 'boss') {
+        return await getAllUsers();
+    }
+
+    // For super_user and tournament_host, get their created users and descendants
+    const hierarchy = [];
+    const processedIds = new Set();
+
+    // Recursive function to get users and their descendants
+    const getDescendants = async (parentId) => {
+        if (processedIds.has(parentId.toString())) {
+            return;
+        }
+        processedIds.add(parentId.toString());
+
+        const users = await User.find({ createdBy: parentId })
+            .select('-password')
+            .populate('createdBy', 'name email role')
+            .sort({ createdAt: -1 });
+
+        for (const user of users) {
+            hierarchy.push(user);
+            // Recursively get descendants of this user
+            await getDescendants(user._id);
+        }
+    };
+
+    await getDescendants(userId);
+    return hierarchy;
 };
 
 /**
@@ -257,6 +306,7 @@ module.exports = {
     loginUser,
     getUserDetail,
     getUsersByCreator,
+    getUsersInHierarchy,
     getAllUsers,
     updateUser,
     deleteUser

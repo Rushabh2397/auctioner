@@ -47,8 +47,11 @@ const updatePlayer = async (playerInput) => {
     const wasJustSold = !existingPlayer.sold && (playerInput.sold === true || playerInput.sold === 1);
     console.log('Was just sold:', wasJustSold);
 
+    
+
     // If player was just sold, send WhatsApp notification
     if (wasJustSold && updatedPlayer) {
+        console.log('Preparing to send WhatsApp notification for sold player.---------------');
         try {
             // Get team name
             const teamName = updatedPlayer.teamId?.name || 

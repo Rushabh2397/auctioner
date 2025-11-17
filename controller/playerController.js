@@ -60,11 +60,21 @@ const getPlayerCategories = async (req, res) => {
     }
 };
 
+const bulkCreatePlayers = async (req, res) => {
+    try {
+        const players = await playersService.bulkCreatePlayers(req.body.players, req.body.touranmentId);
+        return sendSuccess(res, 201, "Players created successfully!", players);
+    } catch (error) {
+        return sendError(res, 400, "Failed to create players!", error);
+    }
+};
+
 module.exports = {
     registerPlayer,
     allPlayerDetails,
     getPlayerDetail,
     updatePlayer,
     deletePlayer,
-    getPlayerCategories
+    getPlayerCategories,
+    bulkCreatePlayers
 };

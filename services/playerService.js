@@ -84,11 +84,38 @@ const getPlayerCategories = async (touranmentId) => {
     return categories;
 }
 
+const bulkCreatePlayers = async (playersData, touranmentId) => {
+    // Check for duplicates in the input data
+    const playerNames = playersData.map(p => p.name);
+    const duplicateNames = playerNames.filter((name, index) => playerNames.indexOf(name) !== index);
+    
+    if (duplicateNames.length > 0) {
+        const err = new Error(`Duplicate player names found in CSV: ${[...new Set(duplicateNames)].join(', ')}`);
+        throw err;
+    }
+    
+    // Check for existing players in database
+    const existingPlayers = await players.find({
+        touranmentId: touranmentId,
+        name: { $in: playerNames }
+    });
+    
+    if (existingPlayers.length > 0) {
+        const existingNames = existingPlayers.map(p => p.name).join(', ');
+        const err = new Error(`Players already exist: ${existingNames}`);
+        throw err;
+    }
+    
+    const createdPlayers = await players.insertMany(playersData);
+    return createdPlayers;
+}
+
 module.exports = {
     registerPlayer,
     allPlayerDetails,
     getPlayerDetail,
     updatePlayer,
     deletePlayer,
-    getPlayerCategories
+    getPlayerCategories,
+    bulkCreatePlayers
 }

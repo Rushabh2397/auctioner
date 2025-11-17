@@ -62,11 +62,21 @@ const getTeamNamesAndBudget = async (req, res) => {
     }
 };
 
+const bulkCreateTeams = async (req, res) => {
+    try {
+        const teams = await teamService.bulkCreateTeams(req.body.teams, req.body.touranmentId);
+        return sendSuccess(res, 201, "Teams created successfully!", teams);
+    } catch (error) {
+        return sendError(res, 400, "Failed to create teams!", error);
+    }
+};
+
 module.exports = {
     addTeam,
     getTournamentTeamsReport,
     getTeamReport,
     updateTeam,
     getTeamNames,
-    getTeamNamesAndBudget
+    getTeamNamesAndBudget,
+    bulkCreateTeams
 }

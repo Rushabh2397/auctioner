@@ -215,81 +215,55 @@ const getTeamNames = async (touranmentId) => {
 }
 
 const getTeamNamesAndBudget = async (touranmentId) => {
-    if (!touranmentId) throw new Error("touranmentId is required");
+    try {
+        const teams = await tournament.findById(touranmentId).select('teams.name teams.totalBudget');
+        return teams;
+    } catch (error) {
+        throw error;
+    }
+};
 
-    const aggregationPipeline = [
-        {
-            '$match': {
-                'touranmentId': new mongoose.Types.ObjectId(touranmentId)
-            }
-        }, {
-            '$lookup': {
-                'from': 'player',
-                'localField': '_id',
-                'foreignField': 'teamId',
-                'as': 'players'
-            }
-        }, {
-            '$lookup': {
-                'from': 'tournament',
-                'localField': 'touranmentId',
-                'foreignField': '_id',
-                'as': 'tournament'
-            }
-        }, {
-            '$unwind': {
-                'path': '$tournament',
-                'preserveNullAndEmptyArrays': true
-            }
-        }, {
-            '$addFields': {
-                'totalSpent': {
-                    '$sum': {
-                        '$map': {
-                            'input': '$players',
-                            'as': 'p',
-                            'in': {
-                                '$ifNull': ['$$p.amtSold', 0]
-                            }
-                        }
-                    }
-                },
-                'remainingBudget': {
-                    '$subtract': [
-                        '$tournament.totalBudget',
-                        {
-                            '$sum': {
-                                '$map': {
-                                    'input': '$players',
-                                    'as': 'p',
-                                    'in': {
-                                        '$ifNull': ['$$p.amtSold', 0]
-                                    }
-                                }
-                            }
-                        }
-                    ]
-                }
-            }
-        }, {
-            '$project': {
-                '_id': 1,
-                'name': 1,
-                'logo': 1,
-                'totalSpent': 1,
-                'remainingBudget': 1,
-                'totalBudget': '$tournament.totalBudget'
-            }
-        }, {
-            '$sort': { 'name': 1 }
+const bulkCreateTeams = async (teams, touranmentId) => {
+    try {
+        // Check for duplicates in the input data
+        const teamNames = teams.map(t => t.name);
+        const duplicateNames = teamNames.filter((name, index) => teamNames.indexOf(name) !== index);
+        
+        if (duplicateNames.length > 0) {
+            const err = new Error(`Duplicate team names found in CSV: ${[...new Set(duplicateNames)].join(', ')}`);
+            throw err;
         }
-    ];
-
-    const teams = await Team.aggregate(aggregationPipeline);
-    return teams;
-}
-
-
+        
+        // Check for existing teams in database
+        const existingTeams = await Team.find({
+            touranmentId: touranmentId,
+            name: { $in: teamNames }
+        });
+        
+        if (existingTeams.length > 0) {
+            const existingNames = existingTeams.map(t => t.name).join(', ');
+            const err = new Error(`Teams already exist: ${existingNames}`);
+            throw err;
+        }
+        
+        // Create team documents
+        const createdTeams = await Team.insertMany(teams);
+        
+        // Get team IDs
+        const teamIds = createdTeams.map(t => t._id);
+        
+        // Update tournament with team IDs
+        await Tournament.findByIdAndUpdate(
+            touranmentId,
+            { $push: { teams: { $each: teamIds } } },
+            { new: true }
+        );
+        
+        return createdTeams;
+    } catch (error) {
+        throw error;
+    }
+};
 
 module.exports = {
     addTeam,
@@ -297,5 +271,17 @@ module.exports = {
     getTeamReport,
     updateTeam,
     getTeamNames,
-    getTeamNamesAndBudget
+    getTeamNamesAndBudget,
+    bulkCreateTeams
 }
+
+
+
+// module.exports = {
+//     addTeam,
+//     getTournamentTeamsReport,
+//     getTeamReport,
+//     updateTeam,
+//     getTeamNames,
+//     getTeamNamesAndBudget
+// }

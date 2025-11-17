@@ -20,4 +20,7 @@ teamRouter.post("/names", teamController.getTeamNames);
 // Get All Team Names and Budget
 teamRouter.post("/names-budget", teamController.getTeamNamesAndBudget);
 
+// Bulk Create Teams
+teamRouter.post("/bulk-create", teamController.bulkCreateTeams);
+
 module.exports = teamRouter;

@@ -20,4 +20,7 @@ playerRouter.post("/delete", playerController.deletePlayer);
 // Get All Player Categories
 playerRouter.post("/categories", playerController.getPlayerCategories);
 
+// Bulk Create Players
+playerRouter.post("/bulk-create", playerController.bulkCreatePlayers);
+
 module.exports = playerRouter;

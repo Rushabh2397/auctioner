@@ -31,31 +31,32 @@
  * Step 2: Calculate how many more players needed to reach minimum
  *   playersAlreadyBought = 10
  *   minPlayersPerTeam = 15
- *   slotsToFill = 15 - 10 = 5 players
+ *   slotsToFill = 15 - 10 - 1 = 4 players
+ *   NOTE: We subtract 1 because we're assuming this team WILL WIN the current player
  * 
  * Step 3: Calculate amount to reserve for future minimum purchases
  *   reservedAmount = minBasePrice × slotsToFill
- *   reservedAmount = 500 × 5 = 2,500 Pts
+ *   reservedAmount = 500 × 4 = 2,000 Pts
  * 
  * Step 4: Calculate maximum amount team can bid on current player
  *   maxBiddableAmount = remainingBudget - reservedAmount
- *   maxBiddableAmount = 7,000 - 2,500 = 4,500 Pts
+ *   maxBiddableAmount = 7,000 - 2,000 = 5,000 Pts
  * 
  * RESULT:
  * -------
- * Team A can bid up to 4,500 Pts on the current player.
+ * Team A can bid up to 5,000 Pts on the current player.
  * 
  * WHY THIS WORKS:
  * ---------------
- * If Team A bids and wins at 4,500 Pts:
- *   - New players bought: 11
- *   - New total spent: 8,000 + 4,500 = 12,500 Pts
- *   - New remaining budget: 15,000 - 12,500 = 2,500 Pts
+ * If Team A bids and wins at 5,000 Pts:
+ *   - New players bought: 11 (10 + 1 current player)
+ *   - New total spent: 8,000 + 5,000 = 13,000 Pts
+ *   - New remaining budget: 15,000 - 13,000 = 2,000 Pts
  *   - Players still needed: 15 - 11 = 4
  *   - Minimum cost to buy 4 players: 4 × 500 = 2,000 Pts
- *   - Budget remaining after minimum purchases: 2,500 - 2,000 = 500 Pts ✓
+ *   - Budget remaining after minimum purchases: 2,000 - 2,000 = 0 Pts ✓
  * 
- * Team A will have enough budget to complete their roster!
+ * Team A will have EXACTLY enough budget to complete their roster!
  * 
  * EDGE CASES:
  * -----------
@@ -76,10 +77,10 @@
  * 
  * CODE IMPLEMENTATION:
  * --------------------
- * See: /auctioner/services/teamService.js:104-141
+ * See: /auctioner/services/teamService.js:130-137
  * 
  * const playersAlreadyBought = team.players ? team.players.length : 0;
- * const slotsToFill = Math.max(0, minPlayersPerTeam - playersAlreadyBought);
+ * const slotsToFill = Math.max(0, minPlayersPerTeam - playersAlreadyBought - 1); // -1 for current player
  * const reservedAmount = minBasePrice * slotsToFill;
  * const maxBiddableAmount = Math.max(0, (team.remainingBudget || 0) - reservedAmount);
  * team.maxBiddableAmount = maxBiddableAmount;

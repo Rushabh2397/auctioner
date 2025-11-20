@@ -82,7 +82,8 @@ const getTournamentTeamsReport = async (touranmentId) => {
                                     '$totalBudget', '$$t.totalSpent'
                                 ]
                             },
-                            'maxPlayersPerTeam': '$maxPlayersPerTeam' // Include maxPlayersPerTeam
+                            'maxPlayersPerTeam': '$maxPlayersPerTeam', // Include maxPlayersPerTeam
+                            'minPlayersPerTeam': '$minPlayersPerTeam' // Include minPlayersPerTeam
                         }
                     }
                 }
@@ -92,6 +93,8 @@ const getTournamentTeamsReport = async (touranmentId) => {
                 'name': 1,
                 'totalBudget': 1,
                 'maxPlayersPerTeam': 1,
+                'minPlayersPerTeam': 1,
+                'categoryBasePrices': 1,
                 'teams': 1
             }
         }
@@ -101,6 +104,15 @@ const getTournamentTeamsReport = async (touranmentId) => {
     // Add base prices to players from tournament categoryBasePrices
     if (report && report.length > 0 && report[0].teams) {
         const tournamentData = await Tournament.findById(touranmentId);
+        
+        // Calculate minimum base price across all categories
+        let minBasePrice = 0;
+        if (tournamentData && tournamentData.categoryBasePrices) {
+            const basePrices = Array.from(tournamentData.categoryBasePrices.values());
+            minBasePrice = basePrices.length > 0 ? Math.min(...basePrices) : 0;
+        }
+        
+        const minPlayersPerTeam = report[0].minPlayersPerTeam || 0;
         
         report[0].teams = report[0].teams.map(team => {
             if (team.players && Array.isArray(team.players)) {
@@ -114,6 +126,17 @@ const getTournamentTeamsReport = async (touranmentId) => {
                     return player;
                 });
             }
+            
+            // Calculate max biddable amount
+            // Formula: (Amount left - (min base price × (min players per team - players already bought - 1)))
+            // The -1 accounts for the current player being purchased
+            const playersAlreadyBought = team.players ? team.players.length : 0;
+            const slotsToFill = Math.max(0, minPlayersPerTeam - playersAlreadyBought - 1);
+            const reservedAmount = minBasePrice * slotsToFill;
+            const maxBiddableAmount = Math.max(0, (team.remainingBudget || 0) - reservedAmount);
+            
+            team.maxBiddableAmount = maxBiddableAmount;
+            
             return team;
         });
     }

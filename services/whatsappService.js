@@ -8,10 +8,19 @@ const config = require('../config');
  * @param {string} playerData.mobile - Player mobile number
  * @param {string} playerData.teamName - Team name that bought the player
  * @param {number} playerData.amtSold - Amount for which player was sold
+ * @param {string} playerData.tournamentName - Tournament name (optional, will be fetched if not provided)
+ * @param {string} playerData.tournamentId - Tournament ID (required if tournamentName not provided)
  */
 const sendPlayerSoldNotification = async (playerData) => {
     try {
-        const { name, mobile, teamName, amtSold } = playerData;
+        let { name, mobile, teamName, amtSold, tournamentName, tournamentId } = playerData;
+        
+        // Fetch tournament name dynamically if not provided
+        if (!tournamentName && tournamentId) {
+            const Tournament = require('../models/tournament');
+            const tournament = await Tournament.findById(tournamentId);
+            tournamentName = tournament?.name || 'Tournament';
+        }
 
         if (!mobile) {
             throw new Error("Player mobile number is required");
@@ -54,7 +63,7 @@ const sendPlayerSoldNotification = async (playerData) => {
                             },
                             {
                                 type: "text",
-                                text: "Jain X Cup"
+                                text: tournamentName || "Tournament"
                             }
                         ]
                     }

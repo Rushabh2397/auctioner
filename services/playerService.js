@@ -17,7 +17,24 @@ const registerPlayer = async (playerInput) => {
 
 const allPlayerDetails = async (touranmentId) => {
     const playerDetails = await players.find({ touranmentId: touranmentId });
-    return playerDetails;
+    
+    // Fetch tournament to get base prices for each category
+    const Tournament = require('../models/tournament');
+    const tournamentData = await Tournament.findById(touranmentId);
+    
+    // Add base price to each player based on their category
+    const playersWithBasePrices = playerDetails.map(player => {
+        const playerObj = player.toObject();
+        if (tournamentData && tournamentData.categoryBasePrices && playerObj.playerCategory) {
+            const basePrice = tournamentData.categoryBasePrices.get(playerObj.playerCategory);
+            playerObj.basePrice = basePrice || 0;
+        } else {
+            playerObj.basePrice = 0;
+        }
+        return playerObj;
+    });
+    
+    return playersWithBasePrices;
 }
 
 const getPlayerDetail = async (playerId) => {
@@ -59,11 +76,17 @@ const updatePlayer = async (playerInput) => {
                              (await team.findById(playerInput.teamId))?.name : 
                              'Unknown Team');
 
+            // Get tournament name
+            const Tournament = require('../models/tournament');
+            const tournament = await Tournament.findById(updatedPlayer.touranmentId);
+            const tournamentName = tournament?.name || 'Tournament';
+
             await whatsappService.sendPlayerSoldNotification({
                 name: updatedPlayer.name,
                 mobile: updatedPlayer.mobile,
                 teamName: teamName,
-                amtSold: updatedPlayer.amtSold || playerInput.amtSold
+                amtSold: updatedPlayer.amtSold || playerInput.amtSold,
+                tournamentName: tournamentName
             });
         } catch (whatsappError) {
             // Log error but don't fail the update

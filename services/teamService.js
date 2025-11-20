@@ -97,6 +97,27 @@ const getTournamentTeamsReport = async (touranmentId) => {
         }
     ];
     const report = await Tournament.aggregate(aggegrationPipeline);
+    
+    // Add base prices to players from tournament categoryBasePrices
+    if (report && report.length > 0 && report[0].teams) {
+        const tournamentData = await Tournament.findById(touranmentId);
+        
+        report[0].teams = report[0].teams.map(team => {
+            if (team.players && Array.isArray(team.players)) {
+                team.players = team.players.map(player => {
+                    if (tournamentData && tournamentData.categoryBasePrices && player.playerCategory) {
+                        const basePrice = tournamentData.categoryBasePrices.get(player.playerCategory);
+                        player.basePrice = basePrice || 0;
+                    } else {
+                        player.basePrice = 0;
+                    }
+                    return player;
+                });
+            }
+            return team;
+        });
+    }
+    
     return report;
 }
 
@@ -175,6 +196,25 @@ const getTeamReport = async (teamId) => {
     ]
 
     const teamReport = await Team.aggregate(aggregationPipeline);
+    
+    // Add base prices to players from tournament categoryBasePrices
+    if (teamReport && teamReport.length > 0 && teamReport[0].players) {
+        const tournamentId = teamReport[0].tournament?._id;
+        if (tournamentId) {
+            const tournamentData = await Tournament.findById(tournamentId);
+            
+            teamReport[0].players = teamReport[0].players.map(player => {
+                if (tournamentData && tournamentData.categoryBasePrices && player.playerCategory) {
+                    const basePrice = tournamentData.categoryBasePrices.get(player.playerCategory);
+                    player.basePrice = basePrice || 0;
+                } else {
+                    player.basePrice = 0;
+                }
+                return player;
+            });
+        }
+    }
+    
     return teamReport;
 }
 

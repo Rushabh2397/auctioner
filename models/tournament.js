@@ -8,7 +8,13 @@ const tournamentSchema = new Schema({
     maxPlayersPerTeam: { type: Number },
     minPlayersPerTeam: { type: Number },
     totalBudget: { type: Number },
-    playerCategories: [{ type: String }]
+    playerCategories: [{ type: String }],
+    categoryBasePrices: { type: Map, of: Number },
+    bidIncrementSlabs: [{
+        minBid: { type: Number, required: true },
+        maxBid: { type: Number, default: null },
+        increment: { type: Number, required: true }
+    }]
 }, { collection: "tournament", timestamps: true });
 
 module.exports = model(tournamentSchema.options.collection, tournamentSchema);

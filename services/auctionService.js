@@ -57,6 +57,15 @@ const nextAuctionPlayer = async (touranmentId, playerCategory) => {
         throw err;
     }
 
+    // Fetch tournament to get base price for player's category
+    const tournamentData = await tournament.findById(touranmentId);
+    if (tournamentData && tournamentData.categoryBasePrices) {
+        const basePrice = tournamentData.categoryBasePrices.get(nextPlayer.playerCategory);
+        nextPlayer.basePrice = basePrice || 0;
+    } else {
+        nextPlayer.basePrice = 0;
+    }
+
     return nextPlayer;
 };
 

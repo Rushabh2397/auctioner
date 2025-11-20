@@ -14,7 +14,6 @@ const playerSchema = new Schema({
     teamId: { type: Schema.Types.ObjectId },
     sold: { type: Boolean },
     auctionStatus: { type: Boolean },
-    basePrice: { type: Number },
     amtSold: { type: Number },
     playerCategory: { type: String }
 }, { collection: "player", timestamps: true })

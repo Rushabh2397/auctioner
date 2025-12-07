@@ -94,6 +94,31 @@ const updatePlayer = async (playerInput) => {
         }
     }
 
+    // Check if player went unsold (auctionStatus changed to true but sold is false)
+    const wentUnsold = !existingPlayer.auctionStatus && 
+                       (playerInput.auctionStatus === true || playerInput.auctionStatus === 1) &&
+                       !updatedPlayer.sold;
+    
+    // If player went unsold, send WhatsApp notification
+    if (wentUnsold && updatedPlayer) {
+        console.log('Preparing to send WhatsApp notification for unsold player.---------------');
+        try {
+            // Get tournament name
+            const Tournament = require('../models/tournament');
+            const tournament = await Tournament.findById(updatedPlayer.touranmentId);
+            const tournamentName = tournament?.name || 'Tournament';
+
+            await whatsappService.sendPlayerUnsoldNotification({
+                name: updatedPlayer.name,
+                mobile: updatedPlayer.mobile,
+                tournamentName: tournamentName
+            });
+        } catch (whatsappError) {
+            // Log error but don't fail the update
+            console.error('WhatsApp unsold notification failed:', whatsappError.message);
+        }
+    }
+
     return updatedPlayer;
 }
 

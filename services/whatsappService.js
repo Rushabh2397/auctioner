@@ -88,6 +88,84 @@ const sendPlayerSoldNotification = async (playerData) => {
     }
 };
 
+/**
+ * Send WhatsApp notification when a player goes unsold
+ * @param {Object} playerData - Player information
+ * @param {string} playerData.name - Player name
+ * @param {string} playerData.mobile - Player mobile number
+ * @param {string} playerData.tournamentName - Tournament name (optional, will be fetched if not provided)
+ * @param {string} playerData.tournamentId - Tournament ID (required if tournamentName not provided)
+ */
+const sendPlayerUnsoldNotification = async (playerData) => {
+    try {
+        let { name, mobile, tournamentName, tournamentId } = playerData;
+        
+        // Fetch tournament name dynamically if not provided
+        if (!tournamentName && tournamentId) {
+            const Tournament = require('../models/tournament');
+            const tournament = await Tournament.findById(tournamentId);
+            tournamentName = tournament?.name || 'Tournament';
+        }
+
+        if (!mobile) {
+            throw new Error("Player mobile number is required");
+        }
+
+        // Format mobile number - ensure it starts with country code
+        let formattedMobile = mobile.toString();
+        if (!formattedMobile.startsWith('+')) {
+            // Assuming Indian numbers, add +91
+            formattedMobile = `+91${formattedMobile}`;
+        }
+
+        const url = 'https://graph.facebook.com/v22.0/815105745024217/messages';
+        
+        const payload = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: formattedMobile,
+            type: "template",
+            template: {
+                name: "unsold_message",
+                language: {
+                    code: "en"
+                },
+                components: [
+                    {
+                        type: "body",
+                        parameters: [
+                            {
+                                type: "text",
+                                text: name || "Player"
+                            },
+                            {
+                                type: "text",
+                                text: tournamentName || "Tournament"
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        const headers = {
+            'Authorization': `Bearer ${config.metaApiKey}`,
+            'Content-Type': 'application/json'
+        };
+
+        const response = await axios.post(url, payload, { headers });
+        
+        console.log('WhatsApp unsold notification sent successfully:', response.data);
+        return response.data;
+
+    } catch (error) {
+        console.error('Error sending WhatsApp unsold notification:', error.response?.data || error.message);
+        // Don't throw error - we don't want to fail the player update if WhatsApp fails
+        return null;
+    }
+};
+
 module.exports = {
-    sendPlayerSoldNotification
+    sendPlayerSoldNotification,
+    sendPlayerUnsoldNotification
 };

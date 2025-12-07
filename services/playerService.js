@@ -158,6 +158,25 @@ const bulkCreatePlayers = async (playersData, touranmentId) => {
     return createdPlayers;
 }
 
+const resetUnsoldPlayers = async (touranmentId) => {
+    // Find and update all unsold players (auctionStatus = true, sold = false)
+    const result = await players.updateMany(
+        { 
+            touranmentId: touranmentId,
+            auctionStatus: true,
+            sold: false
+        },
+        { 
+            $set: { auctionStatus: false }
+        }
+    );
+    
+    return {
+        count: result.modifiedCount,
+        message: `${result.modifiedCount} unsold player(s) reset successfully`
+    };
+}
+
 module.exports = {
     registerPlayer,
     allPlayerDetails,
@@ -165,5 +184,6 @@ module.exports = {
     updatePlayer,
     deletePlayer,
     getPlayerCategories,
-    bulkCreatePlayers
+    bulkCreatePlayers,
+    resetUnsoldPlayers
 }

@@ -41,7 +41,7 @@ const sendPlayerSoldNotification = async (playerData) => {
             to: formattedMobile,
             type: "template",
             template: {
-                name: "sold_message",
+                name: "auction_sold_message",
                 language: {
                     code: "en"
                 },

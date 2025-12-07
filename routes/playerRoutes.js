@@ -1,6 +1,6 @@
 const express = require('express');
 const playerController = require('../controller/playerController');
-const { authMiddleware } = require('../utils/authMiddleware');
+const { authMiddleware, roleMiddleware } = require('../utils/authMiddleware');
 const playerRouter = express.Router();
 
 // Register New Player - Protected
@@ -23,5 +23,8 @@ playerRouter.post("/categories", playerController.getPlayerCategories);
 
 // Bulk Create Players - Protected
 playerRouter.post("/bulk-create", authMiddleware, playerController.bulkCreatePlayers);
+
+// Reset Unsold Players - Protected (Admin and Tournament Host)
+playerRouter.post("/reset-unsold", authMiddleware, roleMiddleware(['boss', 'super_user', 'tournament_host']), playerController.resetUnsoldPlayers);
 
 module.exports = playerRouter;

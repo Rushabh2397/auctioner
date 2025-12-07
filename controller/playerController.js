@@ -69,6 +69,15 @@ const bulkCreatePlayers = async (req, res) => {
     }
 };
 
+const resetUnsoldPlayers = async (req, res) => {
+    try {
+        const result = await playersService.resetUnsoldPlayers(req.body.touranmentId);
+        return sendSuccess(res, 200, result.message, result);
+    } catch (error) {
+        return sendError(res, 400, "Failed to reset unsold players!", error);
+    }
+};
+
 module.exports = {
     registerPlayer,
     allPlayerDetails,
@@ -76,5 +85,6 @@ module.exports = {
     updatePlayer,
     deletePlayer,
     getPlayerCategories,
-    bulkCreatePlayers
+    bulkCreatePlayers,
+    resetUnsoldPlayers
 };

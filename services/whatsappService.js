@@ -13,6 +13,8 @@ const config = require('../config');
  */
 const sendPlayerSoldNotification = async (playerData) => {
     try {
+        console.log(playerData);
+    
         let { name, mobile, teamName, amtSold, tournamentName, tournamentId } = playerData;
         
         // Fetch tournament name dynamically if not provided
@@ -41,7 +43,7 @@ const sendPlayerSoldNotification = async (playerData) => {
             to: formattedMobile,
             type: "template",
             template: {
-                name: "auction_sold_message",
+                name: "sold_message",
                 language: {
                     code: "en"
                 },
@@ -64,6 +66,17 @@ const sendPlayerSoldNotification = async (playerData) => {
                             {
                                 type: "text",
                                 text: tournamentName || "Tournament"
+                            }
+                        ]
+                    },
+                    {
+                        type: "button",
+                        sub_type: "url",
+                        index: "0",
+                        parameters: [
+                            {
+                                type: "text",
+                                text: "/" + (tournamentId || "a")
                             }
                         ]
                     }

@@ -86,7 +86,8 @@ const updatePlayer = async (playerInput) => {
                 mobile: updatedPlayer.mobile,
                 teamName: teamName,
                 amtSold: updatedPlayer.amtSold || playerInput.amtSold,
-                tournamentName: tournamentName
+                tournamentName: tournamentName,
+                tournamentId: tournament._id
             });
         } catch (whatsappError) {
             // Log error but don't fail the update

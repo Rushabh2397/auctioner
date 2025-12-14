@@ -115,10 +115,190 @@ const getEventStats = async (tournamentId) => {
     return await UserEvent.aggregate(pipeline);
 };
 
+/**
+ * Get daily page views aggregation
+ * @param {Date} startDate - Start date
+ * @param {Date} endDate - End date
+ * @returns {Array} Daily page view counts
+ */
+const getDailyPageViews = async (startDate, endDate) => {
+    const pipeline = [
+        {
+            $match: {
+                eventType: 'page_view',
+                timestamp: {
+                    $gte: new Date(startDate),
+                    $lte: new Date(endDate)
+                }
+            }
+        },
+        {
+            $group: {
+                _id: {
+                    year: { $year: "$timestamp" },
+                    month: { $month: "$timestamp" },
+                    day: { $dayOfMonth: "$timestamp" }
+                },
+                count: { $sum: 1 },
+                uniqueVisitors: { $addToSet: "$sessionId" }
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                date: {
+                    $dateFromParts: {
+                        year: "$_id.year",
+                        month: "$_id.month",
+                        day: "$_id.day"
+                    }
+                },
+                pageViews: "$count",
+                uniqueVisitors: { $size: "$uniqueVisitors" }
+            }
+        },
+        { $sort: { date: 1 } }
+    ];
+
+    return await UserEvent.aggregate(pipeline);
+};
+
+/**
+ * Get monthly page views aggregation
+ * @param {Date} startDate - Start date
+ * @param {Date} endDate - End date
+ * @returns {Array} Monthly page view counts
+ */
+const getMonthlyPageViews = async (startDate, endDate) => {
+    const pipeline = [
+        {
+            $match: {
+                eventType: 'page_view',
+                timestamp: {
+                    $gte: new Date(startDate),
+                    $lte: new Date(endDate)
+                }
+            }
+        },
+        {
+            $group: {
+                _id: {
+                    year: { $year: "$timestamp" },
+                    month: { $month: "$timestamp" }
+                },
+                count: { $sum: 1 },
+                uniqueVisitors: { $addToSet: "$sessionId" }
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                date: {
+                    $dateFromParts: {
+                        year: "$_id.year",
+                        month: "$_id.month",
+                        day: 1
+                    }
+                },
+                year: "$_id.year",
+                month: "$_id.month",
+                pageViews: "$count",
+                uniqueVisitors: { $size: "$uniqueVisitors" }
+            }
+        },
+        { $sort: { date: 1 } }
+    ];
+
+    return await UserEvent.aggregate(pipeline);
+};
+
+/**
+ * Get page-wise traffic breakdown
+ * @param {Date} startDate - Start date
+ * @param {Date} endDate - End date
+ * @returns {Array} Traffic by page/route
+ */
+const getPageTrafficBreakdown = async (startDate, endDate) => {
+    const pipeline = [
+        {
+            $match: {
+                eventType: 'page_view',
+                page: { $exists: true, $ne: null },
+                timestamp: {
+                    $gte: new Date(startDate),
+                    $lte: new Date(endDate)
+                }
+            }
+        },
+        {
+            $group: {
+                _id: "$page",
+                count: { $sum: 1 },
+                uniqueVisitors: { $addToSet: "$sessionId" }
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                page: "$_id",
+                pageViews: "$count",
+                uniqueVisitors: { $size: "$uniqueVisitors" }
+            }
+        },
+        { $sort: { pageViews: -1 } },
+        { $limit: 20 }
+    ];
+
+    return await UserEvent.aggregate(pipeline);
+};
+
+/**
+ * Get overall analytics summary
+ * @param {Date} startDate - Start date
+ * @param {Date} endDate - End date
+ * @returns {Object} Analytics summary
+ */
+const getAnalyticsSummary = async (startDate, endDate) => {
+    const pipeline = [
+        {
+            $match: {
+                eventType: 'page_view',
+                timestamp: {
+                    $gte: new Date(startDate),
+                    $lte: new Date(endDate)
+                }
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                totalPageViews: { $sum: 1 },
+                uniqueVisitors: { $addToSet: "$sessionId" },
+                pages: { $addToSet: "$page" }
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                totalPageViews: 1,
+                uniqueVisitors: { $size: "$uniqueVisitors" },
+                uniquePages: { $size: "$pages" }
+            }
+        }
+    ];
+
+    const result = await UserEvent.aggregate(pipeline);
+    return result[0] || { totalPageViews: 0, uniqueVisitors: 0, uniquePages: 0 };
+};
+
 module.exports = {
     trackEvent,
     trackEvents,
     getEventsByUser,
     getEventsByTournament,
-    getEventStats
+    getEventStats,
+    getDailyPageViews,
+    getMonthlyPageViews,
+    getPageTrafficBreakdown,
+    getAnalyticsSummary
 };

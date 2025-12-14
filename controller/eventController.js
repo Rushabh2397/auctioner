@@ -93,10 +93,49 @@ const getEventStats = async (req, res) => {
     }
 };
 
+/**
+ * Get analytics dashboard data
+ * Combines daily, monthly, page traffic, and summary data
+ */
+const getAnalyticsDashboard = async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+
+        // Default to last 30 days if no dates provided
+        const end = endDate ? new Date(endDate) : new Date();
+        const start = startDate ? new Date(startDate) : new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        // Ensure end date includes the full day
+        end.setHours(23, 59, 59, 999);
+
+        const [daily, monthly, pageTraffic, summary] = await Promise.all([
+            eventService.getDailyPageViews(start, end),
+            eventService.getMonthlyPageViews(start, end),
+            eventService.getPageTrafficBreakdown(start, end),
+            eventService.getAnalyticsSummary(start, end)
+        ]);
+
+        sendSuccess(res, 200, "Analytics data retrieved successfully", {
+            daily,
+            monthly,
+            pageTraffic,
+            summary,
+            dateRange: {
+                startDate: start.toISOString(),
+                endDate: end.toISOString()
+            }
+        });
+    } catch (error) {
+        console.error("Error getting analytics dashboard:", error);
+        sendError(res, 500, "Failed to get analytics data", error);
+    }
+};
+
 module.exports = {
     trackEvent,
     trackEvents,
     getEventsByUser,
     getEventsByTournament,
-    getEventStats
+    getEventStats,
+    getAnalyticsDashboard
 };

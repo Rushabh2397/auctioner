@@ -78,6 +78,15 @@ const resetUnsoldPlayers = async (req, res) => {
     }
 };
 
+const deleteAllPlayers = async (req, res) => {
+    try {
+        const result = await playersService.deleteAllPlayersByTournament(req.body.touranmentId);
+        return sendSuccess(res, 200, result.message, result);
+    } catch (error) {
+        return sendError(res, 400, "Failed to delete players!", error);
+    }
+};
+
 module.exports = {
     registerPlayer,
     allPlayerDetails,
@@ -86,5 +95,6 @@ module.exports = {
     deletePlayer,
     getPlayerCategories,
     bulkCreatePlayers,
-    resetUnsoldPlayers
+    resetUnsoldPlayers,
+    deleteAllPlayers
 };

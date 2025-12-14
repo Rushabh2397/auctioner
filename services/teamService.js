@@ -328,6 +328,33 @@ const bulkCreateTeams = async (teams, touranmentId) => {
     }
 };
 
+/**
+ * Delete all teams for a tournament
+ * @param {String} tournamentId - Tournament ID
+ * @returns {Object} Deletion result with count
+ */
+const deleteAllTeamsByTournament = async (tournamentId) => {
+    if (!tournamentId) {
+        throw new Error("Tournament ID is required");
+    }
+
+    const result = await Team.deleteMany({ 
+        touranmentId: new mongoose.Types.ObjectId(tournamentId) 
+    });
+
+    // Also update the tournament to clear the teams array
+    await Tournament.findByIdAndUpdate(
+        tournamentId,
+        { $set: { teams: [] } },
+        { new: true }
+    );
+
+    return { 
+        deletedCount: result.deletedCount,
+        message: `Successfully deleted ${result.deletedCount} teams`
+    };
+};
+
 module.exports = {
     addTeam,
     getTournamentTeamsReport,
@@ -335,7 +362,8 @@ module.exports = {
     updateTeam,
     getTeamNames,
     getTeamNamesAndBudget,
-    bulkCreateTeams
+    bulkCreateTeams,
+    deleteAllTeamsByTournament
 }
 
 

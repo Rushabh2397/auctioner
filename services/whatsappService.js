@@ -1,5 +1,6 @@
 const axios = require('axios');
 const config = require('../config');
+const whatsappLogService = require('./whatsappLogService');
 
 /**
  * Send WhatsApp notification when a player is sold
@@ -12,6 +13,20 @@ const config = require('../config');
  * @param {string} playerData.tournamentId - Tournament ID (required if tournamentName not provided)
  */
 const sendPlayerSoldNotification = async (playerData) => {
+    let logData = {
+        messageType: 'player_sold',
+        templateName: 'sold_message',
+        recipientMobile: playerData.mobile,
+        playerId: playerData.playerId,
+        playerName: playerData.name,
+        tournamentId: playerData.tournamentId,
+        tournamentName: playerData.tournamentName,
+        teamName: playerData.teamName,
+        amtSold: playerData.amtSold,
+        status: 'failed',
+        timestamp: new Date()
+    };
+
     try {
         console.log(playerData);
     
@@ -22,6 +37,7 @@ const sendPlayerSoldNotification = async (playerData) => {
             const Tournament = require('../models/tournament');
             const tournament = await Tournament.findById(tournamentId);
             tournamentName = tournament?.name || 'Tournament';
+            logData.tournamentName = tournamentName;
         }
 
         if (!mobile) {
@@ -34,6 +50,7 @@ const sendPlayerSoldNotification = async (playerData) => {
             // Assuming Indian numbers, add +91
             formattedMobile = `+91${formattedMobile}`;
         }
+        logData.recipientMobile = formattedMobile;
 
         const url = 'https://graph.facebook.com/v22.0/815105745024217/messages';
         
@@ -92,10 +109,21 @@ const sendPlayerSoldNotification = async (playerData) => {
         const response = await axios.post(url, payload, { headers });
         
         console.log('WhatsApp notification sent successfully:', response.data);
+        
+        // Log success
+        logData.status = 'success';
+        logData.messageId = response.data?.messages?.[0]?.id;
+        await whatsappLogService.logMessage(logData);
+        
         return response.data;
 
     } catch (error) {
         console.error('Error sending WhatsApp notification:', error.response?.data || error.message);
+        
+        // Log failure
+        logData.errorMessage = error.response?.data?.error?.message || error.message;
+        await whatsappLogService.logMessage(logData);
+        
         // Don't throw error - we don't want to fail the player update if WhatsApp fails
         return null;
     }
@@ -110,6 +138,18 @@ const sendPlayerSoldNotification = async (playerData) => {
  * @param {string} playerData.tournamentId - Tournament ID (required if tournamentName not provided)
  */
 const sendPlayerUnsoldNotification = async (playerData) => {
+    let logData = {
+        messageType: 'player_unsold',
+        templateName: 'unsold_message',
+        recipientMobile: playerData.mobile,
+        playerId: playerData.playerId,
+        playerName: playerData.name,
+        tournamentId: playerData.tournamentId,
+        tournamentName: playerData.tournamentName,
+        status: 'failed',
+        timestamp: new Date()
+    };
+
     try {
         let { name, mobile, tournamentName, tournamentId } = playerData;
         
@@ -118,6 +158,7 @@ const sendPlayerUnsoldNotification = async (playerData) => {
             const Tournament = require('../models/tournament');
             const tournament = await Tournament.findById(tournamentId);
             tournamentName = tournament?.name || 'Tournament';
+            logData.tournamentName = tournamentName;
         }
 
         if (!mobile) {
@@ -130,6 +171,7 @@ const sendPlayerUnsoldNotification = async (playerData) => {
             // Assuming Indian numbers, add +91
             formattedMobile = `+91${formattedMobile}`;
         }
+        logData.recipientMobile = formattedMobile;
 
         const url = 'https://graph.facebook.com/v22.0/815105745024217/messages';
         
@@ -169,10 +211,21 @@ const sendPlayerUnsoldNotification = async (playerData) => {
         const response = await axios.post(url, payload, { headers });
         
         console.log('WhatsApp unsold notification sent successfully:', response.data);
+        
+        // Log success
+        logData.status = 'success';
+        logData.messageId = response.data?.messages?.[0]?.id;
+        await whatsappLogService.logMessage(logData);
+        
         return response.data;
 
     } catch (error) {
         console.error('Error sending WhatsApp unsold notification:', error.response?.data || error.message);
+        
+        // Log failure
+        logData.errorMessage = error.response?.data?.error?.message || error.message;
+        await whatsappLogService.logMessage(logData);
+        
         // Don't throw error - we don't want to fail the player update if WhatsApp fails
         return null;
     }
@@ -182,3 +235,4 @@ module.exports = {
     sendPlayerSoldNotification,
     sendPlayerUnsoldNotification
 };
+

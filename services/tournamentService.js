@@ -196,6 +196,57 @@ const getAllTournamentHosts = async () => {
     }
 };
 
+/**
+ * Get tournament data for export (teams and players)
+ * @param {String} tournamentId - Tournament ID
+ * @returns {Promise<Object>} - Tournament with teams and players data
+ */
+const getTournamentExportData = async (tournamentId) => {
+    try {
+        const Team = require("../models/team");
+        const Player = require("../models/players");
+
+        const tournamentData = await tournament.findById(tournamentId);
+        if (!tournamentData) {
+            throw new Error("Tournament not found");
+        }
+
+        const teams = await Team.find({ touranmentId: tournamentId });
+        const players = await Player.find({ touranmentId: tournamentId })
+            .populate('teamId', 'name');
+
+        return {
+            tournament: {
+                _id: tournamentData._id,
+                name: tournamentData.name,
+                totalBudget: tournamentData.totalBudget
+            },
+            teams: teams.map(t => ({
+                _id: t._id,
+                name: t.name,
+                logo: t.logo || '',
+                ownerName: t.owner?.name || '',
+                ownerMobile: t.owner?.mobile || ''
+            })),
+            players: players.map(p => ({
+                _id: p._id,
+                name: p.name,
+                age: p.age || '',
+                photo: p.photo || '',
+                playerCategory: p.playerCategory || '',
+                mobile: p.mobile || '',
+                // Additional fields for reference (not in import format)
+                teamName: p.teamId?.name || 'Unsold',
+                sold: p.sold ? 'Yes' : 'No',
+                amtSold: p.amtSold || 0
+            }))
+        };
+    } catch (error) {
+        console.error("Error in getTournamentExportData service:", error);
+        throw error;
+    }
+};
+
 module.exports = {
     createTournament,
     getAllTournaments,
@@ -203,5 +254,7 @@ module.exports = {
     getTournamentDetail,
     updateTournament,
     deleteTournament,
-    getAllTournamentHosts
+    getAllTournamentHosts,
+    getTournamentExportData
 };
+

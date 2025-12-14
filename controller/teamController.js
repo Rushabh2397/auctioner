@@ -71,6 +71,15 @@ const bulkCreateTeams = async (req, res) => {
     }
 };
 
+const deleteAllTeams = async (req, res) => {
+    try {
+        const result = await teamService.deleteAllTeamsByTournament(req.body.touranmentId);
+        return sendSuccess(res, 200, result.message, result);
+    } catch (error) {
+        return sendError(res, 400, "Failed to delete teams!", error);
+    }
+};
+
 module.exports = {
     addTeam,
     getTournamentTeamsReport,
@@ -78,5 +87,6 @@ module.exports = {
     updateTeam,
     getTeamNames,
     getTeamNamesAndBudget,
-    bulkCreateTeams
+    bulkCreateTeams,
+    deleteAllTeams
 }

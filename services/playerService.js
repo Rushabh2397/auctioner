@@ -178,6 +178,26 @@ const resetUnsoldPlayers = async (touranmentId) => {
     };
 }
 
+/**
+ * Delete all players for a tournament
+ * @param {String} tournamentId - Tournament ID
+ * @returns {Object} Deletion result with count
+ */
+const deleteAllPlayersByTournament = async (tournamentId) => {
+    if (!tournamentId) {
+        throw new Error("Tournament ID is required");
+    }
+
+    const result = await players.deleteMany({ 
+        touranmentId: new mongoose.Types.ObjectId(tournamentId) 
+    });
+
+    return { 
+        deletedCount: result.deletedCount,
+        message: `Successfully deleted ${result.deletedCount} players`
+    };
+};
+
 module.exports = {
     registerPlayer,
     allPlayerDetails,
@@ -186,5 +206,6 @@ module.exports = {
     deletePlayer,
     getPlayerCategories,
     bulkCreatePlayers,
-    resetUnsoldPlayers
+    resetUnsoldPlayers,
+    deleteAllPlayersByTournament
 }

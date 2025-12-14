@@ -24,4 +24,7 @@ teamRouter.post("/names-budget", teamController.getTeamNamesAndBudget);
 // Bulk Create Teams - Protected
 teamRouter.post("/bulk-create", authMiddleware, teamController.bulkCreateTeams);
 
+// Delete All Teams for a Tournament - Protected
+teamRouter.post("/delete-all", authMiddleware, teamController.deleteAllTeams);
+
 module.exports = teamRouter;

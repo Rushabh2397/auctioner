@@ -108,11 +108,17 @@ const getAnalyticsDashboard = async (req, res) => {
         // Ensure end date includes the full day
         end.setHours(23, 59, 59, 999);
 
-        const [daily, monthly, pageTraffic, summary] = await Promise.all([
+        // Import whatsappLogService here to avoid circular dependency
+        const whatsappLogService = require("../services/whatsappLogService");
+
+        const [daily, monthly, pageTraffic, summary, whatsappDaily, whatsappSummary, whatsappTypes] = await Promise.all([
             eventService.getDailyPageViews(start, end),
             eventService.getMonthlyPageViews(start, end),
             eventService.getPageTrafficBreakdown(start, end),
-            eventService.getAnalyticsSummary(start, end)
+            eventService.getAnalyticsSummary(start, end),
+            whatsappLogService.getDailyWhatsAppStats(start, end),
+            whatsappLogService.getWhatsAppSummary(start, end),
+            whatsappLogService.getMessageTypeBreakdown(start, end)
         ]);
 
         sendSuccess(res, 200, "Analytics data retrieved successfully", {
@@ -120,6 +126,11 @@ const getAnalyticsDashboard = async (req, res) => {
             monthly,
             pageTraffic,
             summary,
+            whatsapp: {
+                daily: whatsappDaily,
+                summary: whatsappSummary,
+                messageTypes: whatsappTypes
+            },
             dateRange: {
                 startDate: start.toISOString(),
                 endDate: end.toISOString()
@@ -139,3 +150,4 @@ module.exports = {
     getEventStats,
     getAnalyticsDashboard
 };
+

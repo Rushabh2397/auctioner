@@ -91,11 +91,22 @@ const getAllTournamentHosts = async (req, res) => {
     }
 };
 
+const exportTournamentData = async (req, res) => {
+    try {
+        const { tournamentId } = req.body;
+        const exportData = await tournamentService.getTournamentExportData(tournamentId);
+        return sendSuccess(res, 200, "Tournament data exported successfully", exportData);
+    } catch (error) {
+        return sendError(res, 400, "Failed to export tournament data", error);
+    }
+};
+
 module.exports = {
     addTournamnet,
     getAllTournaments,
     getTournamentDetail,
     updateTournament,
     deleteTournament,
-    getAllTournamentHosts
+    getAllTournamentHosts,
+    exportTournamentData
 };

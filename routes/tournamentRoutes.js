@@ -21,4 +21,7 @@ tournamentRouter.post("/delete", authMiddleware, touranmentController.deleteTour
 // Get All Tournament Hosts (for boss and super_user) - Protected
 tournamentRouter.get("/hosts", authMiddleware, touranmentController.getAllTournamentHosts);
 
+// Export Tournament Data (teams and players) - Protected
+tournamentRouter.post("/export", authMiddleware, touranmentController.exportTournamentData);
+
 module.exports = tournamentRouter;

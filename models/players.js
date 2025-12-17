@@ -15,7 +15,8 @@ const playerSchema = new Schema({
     sold: { type: Boolean },
     auctionStatus: { type: Boolean },
     amtSold: { type: Number },
-    playerCategory: { type: String }
+    playerCategory: { type: String },
+    auctionSerialNumber: { type: Number }
 }, { collection: "player", timestamps: true })
 
 module.exports = model(playerSchema.options.collection, playerSchema);

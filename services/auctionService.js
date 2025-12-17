@@ -25,7 +25,7 @@ const nextAuctionPlayer = async (touranmentId, playerCategory) => {
         sold: false,
         auctionStatus: false,
       };
-      if (playerCategory) match.playerCategory = playerCategory;
+      if (playerCategory && playerCategory !== "All") match.playerCategory = playerCategory;
 
       if (playerCategory === "Regular") {
         match = {

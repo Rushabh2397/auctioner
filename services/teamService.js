@@ -137,6 +137,11 @@ const getTournamentTeamsReport = async (touranmentId) => {
             
             team.maxBiddableAmount = maxBiddableAmount;
             
+            // Ensure _id is string for strict equality checks in state manager
+            if (team._id) {
+                team._id = team._id.toString();
+            }
+
             return team;
         });
     }

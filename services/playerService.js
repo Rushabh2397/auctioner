@@ -10,7 +10,17 @@ const registerPlayer = async (playerInput) => {
         const err = new Error("Player already registered!");
         throw err;
     }
-    const newPlayer = new players(playerInput);
+    // Get next serial number
+    const maxSerialPlayer = await players.findOne({ touranmentId: playerInput.touranmentId })
+        .sort({ auctionSerialNumber: -1 })
+        .select('auctionSerialNumber');
+
+    const nextSerial = (maxSerialPlayer?.auctionSerialNumber || 0) + 1;
+
+    const newPlayer = new players({
+        ...playerInput,
+        auctionSerialNumber: nextSerial
+    });
     const savedPlayer = newPlayer.save();
     return savedPlayer;
 }
@@ -155,7 +165,22 @@ const bulkCreatePlayers = async (playersData, touranmentId) => {
         throw err;
     }
     
-    const createdPlayers = await players.insertMany(playersData);
+    // Get starting serial number
+    const maxSerialPlayer = await players.findOne({ touranmentId: touranmentId })
+        .sort({ auctionSerialNumber: -1 })
+        .select('auctionSerialNumber');
+    
+    let currentSerial = (maxSerialPlayer?.auctionSerialNumber || 0);
+
+    const playersWithSerial = playersData.map(p => {
+        currentSerial++;
+        return {
+            ...p,
+            auctionSerialNumber: currentSerial
+        };
+    });
+    
+    const createdPlayers = await players.insertMany(playersWithSerial);
     return createdPlayers;
 }
 

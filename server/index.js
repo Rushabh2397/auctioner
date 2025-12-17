@@ -1,22 +1,35 @@
 const express = require("express");
-const db = require("../db/index.js")
+const http = require("http");
+const { Server } = require("socket.io");
+const db = require("../db/index.js");
 const app = express();
-const config = require("../config/index.js")
-const cors = require("cors")
-const router = require("../routes/index.js")
+const config = require("../config/index.js");
+const cors = require("cors");
+const router = require("../routes/index.js");
+
+// Create HTTP server wrapper for Socket.io
+const server = http.createServer(app);
+
+// Initialize Socket.io with CORS
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Allow all origins for development
+    methods: ["GET", "POST"]
+  }
+});
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+app.use("/api", router);
 
-app.use("/api", router)
+// Import and initialize auction socket handlers
+const initAuctionSockets = require("../sockets/auctionSocket");
+initAuctionSockets(io);
 
-
-
-
-
-
-app.listen(config.port, () => {
-    console.log("Server listening on port 3000");
-})
+// Use server.listen instead of app.listen for Socket.io
+server.listen(config.port, () => {
+  console.log(`Server listening on port ${config.port}`);
+  console.log("Socket.io initialized for real-time auction");
+});

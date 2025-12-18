@@ -18,6 +18,9 @@ const io = new Server(server, {
   }
 });
 
+// Trust proxy to get real client IP when behind Nginx/Load Balancer
+app.set('trust proxy', true);
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

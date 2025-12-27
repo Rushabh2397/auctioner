@@ -336,10 +336,14 @@ module.exports = (io) => {
           player = await auctionService.nextAuctionPlayer(tournamentId, category);
         }
 
-        const newState = auctionStateManager.selectPlayer(tournamentId, player, bidIncrementSlabs);
+        const selResult = auctionStateManager.selectPlayer(tournamentId, player, bidIncrementSlabs);
         
-        auctionNamespace.to(tournamentId).emit("auction:state", newState);
-        auctionNamespace.to(tournamentId).emit("auction:playerSelected", player);
+        if (selResult.success) {
+          auctionNamespace.to(tournamentId).emit("auction:state", selResult.state);
+          auctionNamespace.to(tournamentId).emit("auction:playerSelected", player);
+        } else {
+          socket.emit("auction:error", selResult.error || "Failed to select player");
+        }
         
       } catch (error) {
         console.error("Error selecting player:", error);
@@ -499,10 +503,12 @@ module.exports = (io) => {
                              nextPlayer.basePrice = 0;
                          }
 
-                         const selRes = auctionStateManager.selectPlayer(tournamentId, nextPlayer, teams, slabs);
+                         const selRes = auctionStateManager.selectPlayer(tournamentId, nextPlayer, slabs);
                          if (selRes.success) {
                              auctionNamespace.to(tournamentId).emit("auction:playerSelected", nextPlayer);
                              auctionNamespace.to(tournamentId).emit("auction:state", selRes.state);
+                         } else {
+                             console.error("Failed to auto-select next player after SOLD:", selRes.error);
                          }
                      } else {
                          auctionRaw.auctionMode = null;
@@ -591,10 +597,12 @@ module.exports = (io) => {
                              nextPlayer.basePrice = 0;
                          }
 
-                         const selRes = auctionStateManager.selectPlayer(tournamentId, nextPlayer, teams, slabs);
+                         const selRes = auctionStateManager.selectPlayer(tournamentId, nextPlayer, slabs);
                          if (selRes.success) {
                              auctionNamespace.to(tournamentId).emit("auction:playerSelected", nextPlayer);
                              auctionNamespace.to(tournamentId).emit("auction:state", selRes.state);
+                         } else {
+                             console.error("Failed to auto-select next player after UNSOLD:", selRes.error);
                          }
                      } else {
                          auctionRaw.auctionMode = null;

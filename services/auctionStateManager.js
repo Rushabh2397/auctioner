@@ -136,13 +136,14 @@ const startAuction = (tournamentId, { mode, category, teams, bidIncrementSlabs }
  */
 const selectPlayer = (tournamentId, player, bidIncrementSlabs) => {
   const auction = activeAuctions.get(tournamentId);
-  if (!auction) return null;
+  if (!auction) return { success: false, error: "Auction not found" };
   
   auction.currentPlayer = player;
   auction.currentBid = player.basePrice || 0;
   auction.leadingTeam = null;
   auction.teamBids = {};
   auction.bidHistory = [];
+  auction.bidOrder = 0; // Reset bid order counter
   
   // Set initial bid increment
   if (bidIncrementSlabs && bidIncrementSlabs.length > 0) {
@@ -155,7 +156,7 @@ const selectPlayer = (tournamentId, player, bidIncrementSlabs) => {
     auction.bidPrice = 100;
   }
   
-  return getAuctionState(tournamentId);
+  return { success: true, state: getAuctionState(tournamentId) };
 };
 
 /**
@@ -213,11 +214,17 @@ const placeBid = (tournamentId, teamId, teams) => {
     return { success: false, error: `${team.name} has no remaining slots` };
   }
   
-  // Save to history
+  // Increment bid order
+  auction.bidOrder = (auction.bidOrder || 0) + 1;
+  
+  // Save to history with proper format for auction log
   auction.bidHistory.push({
-    bid: auction.currentBid,
-    teamId: auction.leadingTeam,
-    bidPrice: auction.bidPrice
+    teamId: teamId,
+    teamName: team.name,
+    bidAmount: newBid,
+    bidIncrement: auction.bidPrice,
+    bidOrder: auction.bidOrder,
+    timestamp: new Date()
   });
   
   // Update state
@@ -245,14 +252,22 @@ const undoBid = (tournamentId) => {
     return { success: false, error: "No bids to undo" };
   }
   
-  const lastState = auction.bidHistory.pop();
-  auction.currentBid = lastState.bid;
-  auction.leadingTeam = lastState.teamId;
-  auction.bidPrice = lastState.bidPrice || 100;
+  // Remove the last bid
+  const removedBid = auction.bidHistory.pop();
+  auction.bidOrder = (auction.bidOrder || 1) - 1;
   
-  // Update teamBids
-  if (lastState.teamId) {
-    auction.teamBids[lastState.teamId] = lastState.bid;
+  // Restore state from previous bid or reset to base price
+  if (auction.bidHistory.length > 0) {
+    const previousBid = auction.bidHistory[auction.bidHistory.length - 1];
+    auction.currentBid = previousBid.bidAmount;
+    auction.leadingTeam = previousBid.teamId;
+    auction.bidPrice = previousBid.bidIncrement || 100;
+    auction.teamBids[previousBid.teamId] = previousBid.bidAmount;
+  } else {
+    // No more bids, reset to base price
+    auction.currentBid = auction.currentPlayer?.basePrice || 0;
+    auction.leadingTeam = null;
+    auction.bidPrice = 100;
   }
   
   return {

@@ -44,26 +44,29 @@ module.exports = (io) => {
             const Tournament = require("../models/tournament");
             const User = require("../models/user");
             
-            const [tournament, user] = await Promise.all([
-                Tournament.findById(tournamentId),
-                User.findById(userId)
-            ]);
+            // First check user permissions
+            const user = await User.findById(userId);
             
-            if (!tournament) {
-                return socket.emit("auction:error", "Tournament not found");
-            }
             if (!user) {
                 return socket.emit("auction:error", "User not found");
             }
 
-            // Verify permissions
-            // Host can delete their own room
-            const isHost = tournament.tournamentHostId.toString() === userId;
-            // Boss and Super User can delete any room
+            // Boss and Super User can delete any room (even for deleted tournaments)
             const isAdmin = ['boss', 'super_user'].includes(user.role);
             
-            if (!isHost && !isAdmin) {
-                 return socket.emit("auction:error", "Unauthorized: Only host or admin can delete room");
+            // For non-admin users, verify tournament exists and user is the host
+            if (!isAdmin) {
+                const tournament = await Tournament.findById(tournamentId);
+                
+                if (!tournament) {
+                    return socket.emit("auction:error", "Tournament not found");
+                }
+                
+                const isHost = tournament.tournamentHostId.toString() === userId;
+                
+                if (!isHost) {
+                    return socket.emit("auction:error", "Unauthorized: Only host or admin can delete room");
+                }
             }
 
             auctionStateManager.cleanupAuction(tournamentId);

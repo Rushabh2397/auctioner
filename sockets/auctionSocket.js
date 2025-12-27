@@ -398,6 +398,28 @@ module.exports = (io) => {
       }
     });
 
+    // Reset Mode - Return to mode selection screen
+    socket.on("auction:resetMode", ({ tournamentId }) => {
+      if (!auctionStateManager.isAuctioneer(tournamentId, socket.id)) {
+        return socket.emit("auction:error", "Unauthorized");
+      }
+
+      const auction = auctionStateManager.getOrCreateAuction(tournamentId);
+      if (auction) {
+        // Clear mode and current player to return to selection screen
+        auction.auctionMode = null;
+        auction.selectedCategory = null;
+        auction.currentPlayer = null;
+        auction.currentBid = 0;
+        auction.leadingTeam = null;
+        auction.teamBids = {};
+        auction.bidHistory = [];
+        
+        auctionNamespace.to(tournamentId).emit("auction:state", auctionStateManager.getAuctionState(tournamentId));
+        socket.emit("auction:info", "Returned to mode selection");
+      }
+    });
+
     // Mark Sold
     socket.on("auction:sold", async ({ tournamentId, userId }) => {
       if (!auctionStateManager.isAuctioneer(tournamentId, socket.id)) {

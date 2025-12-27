@@ -12,5 +12,6 @@ eventRouter.get("/user/:userId", authMiddleware, eventController.getEventsByUser
 eventRouter.get("/tournament/:tournamentId", authMiddleware, eventController.getEventsByTournament);
 eventRouter.get("/stats/:tournamentId", authMiddleware, eventController.getEventStats);
 eventRouter.get("/analytics", authMiddleware, eventController.getAnalyticsDashboard);
+eventRouter.get("/auction-room-analytics", authMiddleware, eventController.getAuctionRoomAnalytics);
 
 module.exports = eventRouter;

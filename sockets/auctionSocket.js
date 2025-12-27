@@ -4,6 +4,10 @@ const auctionService = require("../services/auctionService");
 const playerService = require("../services/playerService");
 const auctionLogService = require("../services/auctionLogService");
 const tournamentService = require("../services/tournamentService");
+const auctionRoomSessionService = require("../services/auctionRoomSessionService");
+
+// Store interval IDs for viewer history sampling per tournament
+const viewerHistoryIntervals = new Map();
 
 module.exports = (io) => {
   const auctionNamespace = io.of("/auction");
@@ -41,35 +45,75 @@ module.exports = (io) => {
     // Delete Auction Room (Host/Admin only)
     socket.on("auction:delete", async ({ tournamentId, userId }) => {
         try {
+            console.log(`[auction:delete] Request received - tournamentId: ${tournamentId}, userId: ${userId}`);
+            
             const Tournament = require("../models/tournament");
             const User = require("../models/user");
             
-            // First check user permissions
-            const user = await User.findById(userId);
+            let canDelete = false;
+            let skipAnalytics = false;
             
-            if (!user) {
-                return socket.emit("auction:error", "User not found");
+            // If no userId provided or user not found, still allow deletion but skip analytics
+            if (!userId) {
+                console.log(`[auction:delete] No userId provided - allowing deletion, skipping analytics`);
+                canDelete = true;
+                skipAnalytics = true;
+            } else {
+                // Try to find user
+                const user = await User.findById(userId);
+                console.log(`[auction:delete] User lookup result:`, user ? `Found: ${user.name} (${user.role})` : 'Not found');
+                
+                if (!user) {
+                    // User not found in DB (maybe different database) - allow deletion, skip analytics
+                    console.log(`[auction:delete] User not found in DB - allowing deletion, skipping analytics`);
+                    canDelete = true;
+                    skipAnalytics = true;
+                } else {
+                    // User found - check permissions
+                    const isAdmin = ['boss', 'super_user'].includes(user.role);
+                    
+                    if (isAdmin) {
+                        canDelete = true;
+                    } else {
+                        // For non-admin users, verify tournament exists and user is the host
+                        const tournament = await Tournament.findById(tournamentId);
+                        
+                        if (!tournament) {
+                            // Tournament deleted, but non-admin can still delete their orphan room
+                            canDelete = true;
+                        } else {
+                            const isHost = tournament.tournamentHostId.toString() === userId;
+                            if (isHost) {
+                                canDelete = true;
+                            } else {
+                                return socket.emit("auction:error", "Unauthorized: Only host or admin can delete room");
+                            }
+                        }
+                    }
+                }
             }
 
-            // Boss and Super User can delete any room (even for deleted tournaments)
-            const isAdmin = ['boss', 'super_user'].includes(user.role);
-            
-            // For non-admin users, verify tournament exists and user is the host
-            if (!isAdmin) {
-                const tournament = await Tournament.findById(tournamentId);
-                
-                if (!tournament) {
-                    return socket.emit("auction:error", "Tournament not found");
-                }
-                
-                const isHost = tournament.tournamentHostId.toString() === userId;
-                
-                if (!isHost) {
-                    return socket.emit("auction:error", "Unauthorized: Only host or admin can delete room");
-                }
+            if (!canDelete) {
+                return socket.emit("auction:error", "Unable to delete room");
             }
 
+            // Proceed with deletion
             auctionStateManager.cleanupAuction(tournamentId);
+            
+            // End session analytics (only if we have valid user context)
+            if (!skipAnalytics) {
+                try {
+                    await auctionRoomSessionService.endSession(tournamentId);
+                } catch (analyticsErr) {
+                    console.error(`[auction:delete] Analytics error (non-blocking):`, analyticsErr);
+                }
+            }
+            
+            // Clear sampling interval
+            if (viewerHistoryIntervals.has(tournamentId)) {
+                clearInterval(viewerHistoryIntervals.get(tournamentId));
+                viewerHistoryIntervals.delete(tournamentId);
+            }
             
             // Broadcast update
             const active = auctionStateManager.getAllActiveAuctions();
@@ -95,18 +139,27 @@ module.exports = (io) => {
     });
 
     // Join auction room
-    // Join auction room
-    socket.on("auction:join", (payload) => {
-      let tournamentId, userId;
+    socket.on("auction:join", async (payload) => {
+      let tournamentId, userId, ipAddress;
       if (typeof payload === 'object') {
           tournamentId = payload.tournamentId;
           userId = payload.userId;
+          ipAddress = payload.ipAddress; // Client should send this
       } else {
           tournamentId = payload;
       }
 
+      // Fallback: try to get IP from socket handshake
+      if (!ipAddress) {
+          ipAddress = socket.handshake.headers['x-forwarded-for'] || 
+                      socket.handshake.address || 
+                      socket.request?.connection?.remoteAddress;
+      }
+
       socket.join(tournamentId);
       socket.tournamentId = tournamentId; 
+      socket.viewerUserId = userId;
+      socket.viewerIpAddress = ipAddress;
       
       // Always get or create state so we can return "isActive: false" instead of error
       // This allows the UI to show the "Start Auction" button
@@ -120,6 +173,10 @@ module.exports = (io) => {
       }
 
       const viewerCount = auctionStateManager.addViewer(tournamentId, socket.id);
+      
+      // Track viewer join in session analytics
+      auctionRoomSessionService.recordViewerJoin(tournamentId, userId, ipAddress);
+      auctionRoomSessionService.updateViewerCount(tournamentId, viewerCount);
       
       const safeState = auctionStateManager.getAuctionState(tournamentId);
       socket.emit("auction:state", safeState);
@@ -152,13 +209,18 @@ module.exports = (io) => {
         const teams = teamsReport && teamsReport.length > 0 ? teamsReport[0].teams : [];
         
         let bidIncrementSlabs = [];
+        let tournamentName = 'Unknown Tournament';
+        let hostUserName = '';
         
-        // Fetch tournament for slabs
+        // Fetch tournament for slabs and name
+        const Tournament = require("../models/tournament");
+        const User = require("../models/user");
         try {
-          const Tournament = require("../models/tournament");
-          const tournament = await Tournament.findById(tournamentId);
+          const tournament = await Tournament.findById(tournamentId).populate('tournamentHostId', 'name');
           if (tournament) {
             bidIncrementSlabs = tournament.bidIncrementSlabs || [];
+            tournamentName = tournament.name;
+            hostUserName = tournament.tournamentHostId?.name || '';
           }
         } catch (err) {
           console.error("Error fetching tournament slabs:", err);
@@ -172,6 +234,32 @@ module.exports = (io) => {
             teams,
             bidIncrementSlabs
           });
+          
+          // Create session for analytics tracking
+          await auctionRoomSessionService.createSession({
+            tournamentId,
+            tournamentName,
+            hostUserId: userId,
+            hostUserName
+          });
+          
+          // Start 1-minute interval for viewer history sampling
+          if (!viewerHistoryIntervals.has(tournamentId)) {
+            const intervalId = setInterval(async () => {
+              const state = auctionStateManager.getAuctionState(tournamentId);
+              if (state && state.isActive) {
+                await auctionRoomSessionService.recordViewerHistorySample(
+                  tournamentId, 
+                  state.viewerCount
+                );
+              } else {
+                // Auction ended, clear interval
+                clearInterval(intervalId);
+                viewerHistoryIntervals.delete(tournamentId);
+              }
+            }, 60000); // 1 minute
+            viewerHistoryIntervals.set(tournamentId, intervalId);
+          }
         } else {
           // Just update teams in case of budget changes from elsewhere
           auctionStateManager.updateTeams(tournamentId, teams);
@@ -185,7 +273,6 @@ module.exports = (io) => {
         // Broadcast active list update to everyone (Lobby)
         const active = auctionStateManager.getAllActiveAuctions();
         // We re-fetch names basically... optimization needed later
-         const Tournament = require("../models/tournament");
          const enriched = await Promise.all(active.map(async (a) => {
              const t = await Tournament.findById(a.tournamentId).select('name tournamentHostId');
              return { 
@@ -274,6 +361,9 @@ module.exports = (io) => {
         
         const result = auctionStateManager.placeBid(tournamentId, teamId, state.teams);
         if (result.success) {
+            // Track bid in session analytics
+            auctionRoomSessionService.recordAuctionActivity(tournamentId, 'bid');
+            
             auctionNamespace.to(tournamentId).emit("auction:bidPlaced", {
                 teamId,
                 amount: result.newBid,
@@ -313,6 +403,9 @@ module.exports = (io) => {
       const result = auctionStateManager.markSold(tournamentId);
       
       if (result.success) {
+        // Track sold in session analytics
+        auctionRoomSessionService.recordAuctionActivity(tournamentId, 'sold');
+        
         // Broadcast immediately for animation
         auctionNamespace.to(tournamentId).emit("auction:sold", {
             player: result.player,
@@ -435,6 +528,9 @@ module.exports = (io) => {
       const result = auctionStateManager.markUnsold(tournamentId);
       
       if (result.success) {
+        // Track unsold in session analytics
+        auctionRoomSessionService.recordAuctionActivity(tournamentId, 'unsold');
+        
         auctionNamespace.to(tournamentId).emit("auction:unsold", {
             player: result.player
         });
@@ -516,12 +612,15 @@ module.exports = (io) => {
     });
 
     // Disconnect
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
       console.log(`Socket disconnected: ${socket.id}`);
       
       if (socket.tournamentId) {
         const viewerCount = auctionStateManager.removeViewer(socket.tournamentId, socket.id);
         auctionNamespace.to(socket.tournamentId).emit("auction:viewerCount", viewerCount);
+        
+        // Update viewer count in session analytics
+        auctionRoomSessionService.updateViewerCount(socket.tournamentId, viewerCount);
       }
     });
   });

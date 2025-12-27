@@ -9,7 +9,7 @@ const whatsappLogSchema = new Schema({
     messageType: { 
         type: String, 
         required: true,
-        enum: ['player_sold', 'player_unsold', 'test'],
+        enum: ['player_sold', 'player_unsold', 'auction_announcement', 'team_purchase_summary', 'test'],
         index: true
     },
     templateName: { type: String },

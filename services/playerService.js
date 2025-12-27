@@ -99,6 +99,16 @@ const updatePlayer = async (playerInput) => {
                 tournamentName: tournamentName,
                 tournamentId: tournament._id
             });
+            
+            // Also send team purchase summary to team owner
+            if (playerInput.teamId) {
+                await whatsappService.sendTeamPurchaseSummary({
+                    teamId: playerInput.teamId,
+                    playerName: updatedPlayer.name,
+                    amountPaid: updatedPlayer.amtSold || playerInput.amtSold,
+                    tournamentId: updatedPlayer.touranmentId
+                });
+            }
         } catch (whatsappError) {
             // Log error but don't fail the update
             console.error('WhatsApp notification failed:', whatsappError.message);

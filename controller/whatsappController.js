@@ -59,7 +59,56 @@ const testWhatsApp = async (req, res) => {
     }
 };
 
+/**
+ * Broadcast auction announcement to all players and team owners
+ * Expects: { tournamentId }
+ */
+const announceAuction = async (req, res) => {
+    try {
+        const { tournamentId, tournamentName } = req.body;
+        
+        if (!tournamentId) {
+            return sendError(res, 400, "Tournament ID is required");
+        }
+
+        const result = await whatsappService.sendAuctionAnnouncementBroadcast({
+            tournamentId,
+            tournamentName
+        });
+
+        return sendSuccess(res, 200, `Auction announcement sent to ${result.totalRecipients} recipients`, result);
+    } catch (error) {
+        console.error("Error broadcasting auction announcement:", error);
+        return sendError(res, 500, "Failed to broadcast auction announcement", error);
+    }
+};
+
+/**
+ * Get recipient count for announcement preview
+ * Expects: { tournamentId }
+ */
+const previewRecipients = async (req, res) => {
+    try {
+        const { tournamentId } = req.body;
+        
+        if (!tournamentId) {
+            return sendError(res, 400, "Tournament ID is required");
+        }
+
+        const result = await whatsappService.getAnnouncementRecipientCount({
+            tournamentId
+        });
+
+        return sendSuccess(res, 200, "Recipient count retrieved", result);
+    } catch (error) {
+        console.error("Error getting recipient count:", error);
+        return sendError(res, 500, "Failed to get recipient count", error);
+    }
+};
+
 module.exports = {
     notifyPlayerSold,
-    testWhatsApp
+    testWhatsApp,
+    announceAuction,
+    previewRecipients
 };

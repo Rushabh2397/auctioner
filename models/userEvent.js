@@ -32,6 +32,11 @@ const userEventSchema = new Schema({
             'tournament_view',    // Tournament details viewed
             'teams_view',         // Teams list viewed
             'players_view',       // Players list viewed
+            // Auction room events
+            'auction_room_created',  // Room opened
+            'auction_room_joined',   // User joined room
+            'auction_room_left',     // User left room
+            'auction_room_closed',   // Room closed
         ],
         index: true
     },

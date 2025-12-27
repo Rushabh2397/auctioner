@@ -1,4 +1,5 @@
 const eventService = require("../services/eventService");
+const auctionRoomSessionService = require("../services/auctionRoomSessionService");
 const { sendSuccess, sendError } = require("../utils");
 
 /**
@@ -142,12 +143,43 @@ const getAnalyticsDashboard = async (req, res) => {
     }
 };
 
+/**
+ * Get auction room analytics
+ * Returns session statistics, daily trends, and top rooms
+ */
+const getAuctionRoomAnalytics = async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+
+        // Default to last 30 days if no dates provided
+        const end = endDate ? new Date(endDate) : new Date();
+        const start = startDate ? new Date(startDate) : new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        // Ensure end date includes the full day
+        end.setHours(23, 59, 59, 999);
+
+        const analytics = await auctionRoomSessionService.getSessionAnalytics(start, end);
+
+        sendSuccess(res, 200, "Auction room analytics retrieved successfully", {
+            ...analytics,
+            dateRange: {
+                startDate: start.toISOString(),
+                endDate: end.toISOString()
+            }
+        });
+    } catch (error) {
+        console.error("Error getting auction room analytics:", error);
+        sendError(res, 500, "Failed to get auction room analytics", error);
+    }
+};
+
 module.exports = {
     trackEvent,
     trackEvents,
     getEventsByUser,
     getEventsByTournament,
     getEventStats,
-    getAnalyticsDashboard
+    getAnalyticsDashboard,
+    getAuctionRoomAnalytics
 };
 

@@ -26,13 +26,15 @@ const registerPlayer = async (playerInput) => {
 }
 
 const allPlayerDetails = async (touranmentId) => {
-    const playerDetails = await players.find({ touranmentId: touranmentId });
+    // Populate teamId to get team name for sold players
+    const playerDetails = await players.find({ touranmentId: touranmentId })
+        .populate('teamId', 'name');
     
     // Fetch tournament to get base prices for each category
     const Tournament = require('../models/tournament');
     const tournamentData = await Tournament.findById(touranmentId);
     
-    // Add base price to each player based on their category
+    // Add base price and teamName to each player based on their category
     const playersWithBasePrices = playerDetails.map(player => {
         const playerObj = player.toObject();
         if (tournamentData && tournamentData.categoryBasePrices && playerObj.playerCategory) {
@@ -40,6 +42,10 @@ const allPlayerDetails = async (touranmentId) => {
             playerObj.basePrice = basePrice || 0;
         } else {
             playerObj.basePrice = 0;
+        }
+        // Add teamName from populated teamId
+        if (playerObj.teamId && playerObj.teamId.name) {
+            playerObj.teamName = playerObj.teamId.name;
         }
         return playerObj;
     });

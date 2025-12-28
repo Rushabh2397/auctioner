@@ -490,14 +490,14 @@ const sendTeamPurchaseSummary = async ({ teamId, playerName, amountPaid, tournam
         const budgetUsed = teamPlayers.reduce((sum, p) => sum + (p.amtSold || 0), 0);
         const budgetRemaining = totalBudget - budgetUsed;
         
-        // Build squad list (max 5 players to fit in template)
+        // Build squad list with commas (no newlines allowed in WhatsApp parameters)
         const squadList = teamPlayers
             .slice(0, 5)
-            .map((p, i) => `${i + 1}. ${p.name}`)
-            .join('\n');
+            .map(p => p.name)
+            .join(', ');
         const squadDisplay = teamPlayers.length > 5 
-            ? squadList + `\n... and ${teamPlayers.length - 5} more`
-            : squadList;
+            ? squadList + ` (+${teamPlayers.length - 5} more)`
+            : (squadList || "No players yet");
         
         // Format currency
         const formatCurrency = (amt) => {
@@ -537,7 +537,15 @@ const sendTeamPurchaseSummary = async ({ teamId, playerName, amountPaid, tournam
                             { type: "text", text: playerCount.toString() },
                             { type: "text", text: formatCurrency(budgetUsed) },
                             { type: "text", text: formatCurrency(budgetRemaining) },
-                            { type: "text", text: squadDisplay || "No players yet" }
+                            { type: "text", text: squadDisplay }
+                        ]
+                    },
+                    {
+                        type: "button",
+                        sub_type: "url",
+                        index: "0",
+                        parameters: [
+                            { type: "text", text: teamId.toString() }
                         ]
                     }
                 ]

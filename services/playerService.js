@@ -181,7 +181,7 @@ const bulkCreatePlayers = async (playersData, touranmentId) => {
         throw err;
     }
     
-    // Get starting serial number
+    // Get starting serial number for auto-generation (only used if not provided in CSV)
     const maxSerialPlayer = await players.findOne({ touranmentId: touranmentId })
         .sort({ auctionSerialNumber: -1 })
         .select('auctionSerialNumber');
@@ -189,11 +189,19 @@ const bulkCreatePlayers = async (playersData, touranmentId) => {
     let currentSerial = (maxSerialPlayer?.auctionSerialNumber || 0);
 
     const playersWithSerial = playersData.map(p => {
-        currentSerial++;
-        return {
-            ...p,
-            auctionSerialNumber: currentSerial
-        };
+        // Use serial number from CSV if provided, otherwise auto-generate
+        if (p.auctionSerialNumber !== undefined && p.auctionSerialNumber !== null && p.auctionSerialNumber !== '') {
+            return {
+                ...p,
+                auctionSerialNumber: Number(p.auctionSerialNumber)
+            };
+        } else {
+            currentSerial++;
+            return {
+                ...p,
+                auctionSerialNumber: currentSerial
+            };
+        }
     });
     
     const createdPlayers = await players.insertMany(playersWithSerial);

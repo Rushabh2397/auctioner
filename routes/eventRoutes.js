@@ -13,5 +13,7 @@ eventRouter.get("/tournament/:tournamentId", authMiddleware, eventController.get
 eventRouter.get("/stats/:tournamentId", authMiddleware, eventController.getEventStats);
 eventRouter.get("/analytics", authMiddleware, eventController.getAnalyticsDashboard);
 eventRouter.get("/auction-room-analytics", authMiddleware, eventController.getAuctionRoomAnalytics);
+eventRouter.get("/geo-analytics", authMiddleware, eventController.getGeoAnalytics);
 
 module.exports = eventRouter;
+

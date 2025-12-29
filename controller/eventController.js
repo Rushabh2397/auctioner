@@ -1,5 +1,6 @@
 const eventService = require("../services/eventService");
 const auctionRoomSessionService = require("../services/auctionRoomSessionService");
+const geoService = require("../services/geoService");
 const { sendSuccess, sendError } = require("../utils");
 
 /**
@@ -173,6 +174,60 @@ const getAuctionRoomAnalytics = async (req, res) => {
     }
 };
 
+/**
+ * Get geo-analytics data
+ * Returns unique IPs aggregated by city with lat/lng for map visualization
+ */
+const getGeoAnalytics = async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+
+        // Default to last 30 days if no dates provided
+        const end = endDate ? new Date(endDate) : new Date();
+        const start = startDate ? new Date(startDate) : new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        // Ensure end date includes the full day
+        end.setHours(23, 59, 59, 999);
+
+        // Get unique IPs in date range
+        const uniqueIPs = await eventService.getUniqueIPsByDateRange(start, end);
+        
+        if (uniqueIPs.length === 0) {
+            return sendSuccess(res, 200, "Geo analytics retrieved successfully", {
+                cityData: [],
+                totalUniqueIPs: 0,
+                dateRange: {
+                    startDate: start.toISOString(),
+                    endDate: end.toISOString()
+                }
+            });
+        }
+
+        // Batch lookup locations for all IPs
+        const locationMap = await geoService.batchGetLocations(uniqueIPs);
+
+        // Aggregate by city
+        const cityData = geoService.aggregateByCity(locationMap);
+
+        // Filter to only India locations for the India map
+        const indiaCity = cityData.filter(c => c.country === 'India');
+
+        sendSuccess(res, 200, "Geo analytics retrieved successfully", {
+            cityData: indiaCity,
+            allCityData: cityData, // Include all countries for reference
+            totalUniqueIPs: uniqueIPs.length,
+            indiaUniqueIPs: indiaCity.reduce((sum, c) => sum + c.count, 0),
+            dateRange: {
+                startDate: start.toISOString(),
+                endDate: end.toISOString()
+            }
+        });
+    } catch (error) {
+        console.error("Error getting geo analytics:", error);
+        sendError(res, 500, "Failed to get geo analytics", error);
+    }
+};
+
 module.exports = {
     trackEvent,
     trackEvents,
@@ -180,6 +235,6 @@ module.exports = {
     getEventsByTournament,
     getEventStats,
     getAnalyticsDashboard,
-    getAuctionRoomAnalytics
+    getAuctionRoomAnalytics,
+    getGeoAnalytics
 };
-

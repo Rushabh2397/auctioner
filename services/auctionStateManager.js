@@ -261,24 +261,13 @@ const undoBid = (tournamentId) => {
     const previousBid = auction.bidHistory[auction.bidHistory.length - 1];
     auction.currentBid = previousBid.bidAmount;
     auction.leadingTeam = previousBid.teamId;
+    auction.bidPrice = previousBid.bidIncrement || 100;
     auction.teamBids[previousBid.teamId] = previousBid.bidAmount;
-    // Recalculate bid increment based on the restored bid amount
-    auction.bidPrice = getCurrentBidIncrement(tournamentId, previousBid.bidAmount);
   } else {
     // No more bids, reset to base price
     auction.currentBid = auction.currentPlayer?.basePrice || 0;
     auction.leadingTeam = null;
-    // Recalculate bid increment based on base price
-    const basePrice = auction.currentPlayer?.basePrice || 0;
-    if (auction.bidIncrementSlabs && auction.bidIncrementSlabs.length > 0) {
-      const slab = auction.bidIncrementSlabs.find(s => 
-        basePrice >= s.minBid && 
-        (s.maxBid === null || basePrice <= s.maxBid)
-      );
-      auction.bidPrice = slab ? slab.increment : 100;
-    } else {
-      auction.bidPrice = 100;
-    }
+    auction.bidPrice = 100;
   }
   
   return {

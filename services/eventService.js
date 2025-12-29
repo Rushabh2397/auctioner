@@ -291,6 +291,41 @@ const getAnalyticsSummary = async (startDate, endDate) => {
     return result[0] || { totalPageViews: 0, uniqueVisitors: 0, uniquePages: 0 };
 };
 
+/**
+ * Get unique IP addresses from page_view events in date range
+ * @param {Date} startDate - Start date
+ * @param {Date} endDate - End date
+ * @returns {Array} Array of unique IP addresses
+ */
+const getUniqueIPsByDateRange = async (startDate, endDate) => {
+    const pipeline = [
+        {
+            $match: {
+                eventType: 'page_view',
+                ipAddress: { $exists: true, $ne: null },
+                timestamp: {
+                    $gte: new Date(startDate),
+                    $lte: new Date(endDate)
+                }
+            }
+        },
+        {
+            $group: {
+                _id: "$ipAddress"
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                ipAddress: "$_id"
+            }
+        }
+    ];
+
+    const results = await UserEvent.aggregate(pipeline);
+    return results.map(r => r.ipAddress);
+};
+
 module.exports = {
     trackEvent,
     trackEvents,
@@ -300,5 +335,7 @@ module.exports = {
     getDailyPageViews,
     getMonthlyPageViews,
     getPageTrafficBreakdown,
-    getAnalyticsSummary
+    getAnalyticsSummary,
+    getUniqueIPsByDateRange
 };
+

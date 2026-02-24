@@ -40,7 +40,7 @@ const getOrCreateAuction = (tournamentId) => {
 const getAuctionState = (tournamentId) => {
   const auction = activeAuctions.get(tournamentId);
   if (!auction) return null;
-  
+
   return {
     tournamentId: auction.tournamentId,
     isActive: auction.isActive,
@@ -63,7 +63,7 @@ const getAuctionState = (tournamentId) => {
  */
 const setAuctioneer = (tournamentId, socketId, userId) => {
   const auction = getOrCreateAuction(tournamentId);
-  
+
   // If already has auctioneer, check if it's the same user trying to reconnect
   if (auction.auctioneerSocketId && auction.auctioneerSocketId !== socketId) {
     if (userId && auction.auctioneerUserId === userId) {
@@ -73,7 +73,7 @@ const setAuctioneer = (tournamentId, socketId, userId) => {
     }
     return { success: false, error: "Another user is already conducting this auction" };
   }
-  
+
   auction.auctioneerSocketId = socketId;
   auction.auctioneerUserId = userId;
   auction.isActive = true;
@@ -104,14 +104,14 @@ const removeViewer = (tournamentId, socketId) => {
   const auction = activeAuctions.get(tournamentId);
   if (auction) {
     auction.connectedViewers.delete(socketId);
-    
+
     // If the auctioneer disconnected, clear the auctioneer
     if (auction.auctioneerSocketId === socketId) {
       auction.auctioneerSocketId = null;
       // Keep state but mark as paused
       console.log(`Auctioneer disconnected from tournament ${tournamentId}`);
     }
-    
+
     return auction.connectedViewers.size;
   }
   return 0;
@@ -137,25 +137,25 @@ const startAuction = (tournamentId, { mode, category, teams, bidIncrementSlabs }
 const selectPlayer = (tournamentId, player, bidIncrementSlabs) => {
   const auction = activeAuctions.get(tournamentId);
   if (!auction) return { success: false, error: "Auction not found" };
-  
+
   auction.currentPlayer = player;
   auction.currentBid = player.basePrice || 0;
   auction.leadingTeam = null;
   auction.teamBids = {};
   auction.bidHistory = [];
   auction.bidOrder = 0; // Reset bid order counter
-  
+
   // Set initial bid increment
   if (bidIncrementSlabs && bidIncrementSlabs.length > 0) {
-    const slab = bidIncrementSlabs.find(s => 
-      auction.currentBid >= s.minBid && 
+    const slab = bidIncrementSlabs.find(s =>
+      auction.currentBid >= s.minBid &&
       (s.maxBid === null || auction.currentBid <= s.maxBid)
     );
     auction.bidPrice = slab ? slab.increment : 100;
   } else {
     auction.bidPrice = 100;
   }
-  
+
   return { success: true, state: getAuctionState(tournamentId) };
 };
 
@@ -165,12 +165,12 @@ const selectPlayer = (tournamentId, player, bidIncrementSlabs) => {
 const getCurrentBidIncrement = (tournamentId, bidAmount) => {
   const auction = activeAuctions.get(tournamentId);
   if (!auction || !auction.bidIncrementSlabs.length) return 100;
-  
-  const slab = auction.bidIncrementSlabs.find(s => 
-    bidAmount >= s.minBid && 
+
+  const slab = auction.bidIncrementSlabs.find(s =>
+    bidAmount >= s.minBid &&
     (s.maxBid === null || bidAmount <= s.maxBid)
   );
-  
+
   return slab ? slab.increment : 100;
 };
 
@@ -182,12 +182,12 @@ const placeBid = (tournamentId, teamId, teams) => {
   if (!auction || !auction.currentPlayer) {
     return { success: false, error: "No active auction or player" };
   }
-  
+
   const team = teams.find(t => t._id === teamId);
   if (!team) {
     return { success: false, error: "Team not found" };
   }
-  
+
   // Calculate new bid
   let newBid;
   if (auction.leadingTeam === null) {
@@ -197,26 +197,13 @@ const placeBid = (tournamentId, teamId, teams) => {
     // Subsequent bid
     newBid = auction.currentBid + auction.bidPrice;
   }
-  
-  // Validate team can afford bid
-  if ((team.remainingBudget || 0) < newBid) {
-    return { success: false, error: `${team.name} does not have enough budget` };
-  }
-  
-  // Check max biddable
-  if ((team.maxBiddableAmount || 0) < newBid) {
-    return { success: false, error: `${team.name} exceeds max biddable amount` };
-  }
-  
-  // Check slots
-  const slotsRemaining = (team.maxPlayersPerTeam || 0) - (team.playersCount || 0);
-  if (slotsRemaining <= 0) {
-    return { success: false, error: `${team.name} has no remaining slots` };
-  }
-  
+
+  // Note: Budget, max biddable, and slot checks are intentionally removed.
+  // The frontend highlights teams as warnings but bidding is never blocked.
+
   // Increment bid order
   auction.bidOrder = (auction.bidOrder || 0) + 1;
-  
+
   // Save to history with proper format for auction log
   auction.bidHistory.push({
     teamId: teamId,
@@ -226,15 +213,15 @@ const placeBid = (tournamentId, teamId, teams) => {
     bidOrder: auction.bidOrder,
     timestamp: new Date()
   });
-  
+
   // Update state
   auction.currentBid = newBid;
   auction.leadingTeam = teamId;
   auction.teamBids[teamId] = newBid;
-  
+
   // Calculate next increment
   auction.bidPrice = getCurrentBidIncrement(tournamentId, newBid);
-  
+
   return {
     success: true,
     state: getAuctionState(tournamentId),
@@ -251,11 +238,11 @@ const undoBid = (tournamentId) => {
   if (!auction || auction.bidHistory.length === 0) {
     return { success: false, error: "No bids to undo" };
   }
-  
+
   // Remove the last bid
   const removedBid = auction.bidHistory.pop();
   auction.bidOrder = (auction.bidOrder || 1) - 1;
-  
+
   // Restore state from previous bid or reset to base price
   if (auction.bidHistory.length > 0) {
     const previousBid = auction.bidHistory[auction.bidHistory.length - 1];
@@ -269,7 +256,7 @@ const undoBid = (tournamentId) => {
     auction.leadingTeam = null;
     auction.bidPrice = 100;
   }
-  
+
   return {
     success: true,
     state: getAuctionState(tournamentId)
@@ -284,7 +271,7 @@ const markSold = (tournamentId) => {
   if (!auction || !auction.currentPlayer || !auction.leadingTeam) {
     return { success: false, error: "Cannot mark sold - no leading team" };
   }
-  
+
   const result = {
     success: true,
     player: auction.currentPlayer,
@@ -293,17 +280,24 @@ const markSold = (tournamentId) => {
     amount: auction.currentBid,
     bids: [...auction.bidHistory] // Return copy of bid history
   };
-  
+
+  // Update the winning team's stats in-memory
+  const winningTeam = auction.teams.find(t => t._id === result.teamId);
+  if (winningTeam) {
+    winningTeam.playersCount = (winningTeam.playersCount || 0) + 1;
+    winningTeam.remainingBudget = (winningTeam.remainingBudget || 0) - result.amount;
+  }
+
   // Increment player number
   auction.playerNumber++;
-  
+
   // Clear current player state (will be set by next selectPlayer)
   auction.currentPlayer = null;
   auction.currentBid = 0;
   auction.leadingTeam = null;
   auction.teamBids = {};
   auction.bidHistory = [];
-  
+
   return result;
 };
 
@@ -315,23 +309,23 @@ const markUnsold = (tournamentId) => {
   if (!auction || !auction.currentPlayer) {
     return { success: false, error: "No player to mark unsold" };
   }
-  
+
   const result = {
     success: true,
     player: auction.currentPlayer,
     bids: [...auction.bidHistory]
   };
-  
+
   // Increment player number
   auction.playerNumber++;
-  
+
   // Clear current player state
   auction.currentPlayer = null;
   auction.currentBid = 0;
   auction.leadingTeam = null;
   auction.teamBids = {};
   auction.bidHistory = [];
-  
+
   return result;
 };
 
@@ -343,6 +337,23 @@ const updateTeams = (tournamentId, teams) => {
   if (auction) {
     auction.teams = teams;
   }
+};
+
+/**
+ * Update bid increment slabs mid-auction (live)
+ */
+const updateBidIncrementSlabs = (tournamentId, slabs) => {
+  const auction = activeAuctions.get(tournamentId);
+  if (!auction) return { success: false, error: "Auction not found" };
+
+  auction.bidIncrementSlabs = slabs || [];
+
+  // Recalculate current bidPrice based on new slabs
+  if (auction.currentPlayer && auction.currentBid > 0) {
+    auction.bidPrice = getCurrentBidIncrement(tournamentId, auction.currentBid);
+  }
+
+  return { success: true, state: getAuctionState(tournamentId) };
 };
 
 /**
@@ -367,20 +378,20 @@ const cleanupAuction = (tournamentId) => {
  * Get all active auctions metadata
  */
 const getAllActiveAuctions = () => {
-    // console.log("Getting all active auctions. Total in map:", activeAuctions.size);
-    const auctions = [];
-    for (const [tournamentId, auction] of activeAuctions.entries()) {
-        // console.log(`Checking auction ${tournamentId}: isActive=${auction.isActive}`);
-        if (auction.isActive) {
-            auctions.push({
-                tournamentId: auction.tournamentId,
-                viewerCount: auction.connectedViewers.size,
-                hasAuctioneer: !!auction.auctioneerSocketId,
-                creationTime: Date.now() // or store creation time in state
-            });
-        }
+  // console.log("Getting all active auctions. Total in map:", activeAuctions.size);
+  const auctions = [];
+  for (const [tournamentId, auction] of activeAuctions.entries()) {
+    // console.log(`Checking auction ${tournamentId}: isActive=${auction.isActive}`);
+    if (auction.isActive) {
+      auctions.push({
+        tournamentId: auction.tournamentId,
+        viewerCount: auction.connectedViewers.size,
+        hasAuctioneer: !!auction.auctioneerSocketId,
+        creationTime: Date.now() // or store creation time in state
+      });
     }
-    return auctions;
+  }
+  return auctions;
 };
 
 module.exports = {
@@ -400,5 +411,6 @@ module.exports = {
   endAuction,
   cleanupAuction,
   getCurrentBidIncrement,
-  getAllActiveAuctions
+  getAllActiveAuctions,
+  updateBidIncrementSlabs
 };

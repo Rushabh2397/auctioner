@@ -100,20 +100,20 @@ const getTournamentTeamsReport = async (touranmentId) => {
         }
     ];
     const report = await Tournament.aggregate(aggegrationPipeline);
-    
+
     // Add base prices to players from tournament categoryBasePrices
     if (report && report.length > 0 && report[0].teams) {
         const tournamentData = await Tournament.findById(touranmentId);
-        
+
         // Calculate minimum base price across all categories
         let minBasePrice = 0;
         if (tournamentData && tournamentData.categoryBasePrices) {
             const basePrices = Array.from(tournamentData.categoryBasePrices.values());
             minBasePrice = basePrices.length > 0 ? Math.min(...basePrices) : 0;
         }
-        
+
         const minPlayersPerTeam = report[0].minPlayersPerTeam || 0;
-        
+
         report[0].teams = report[0].teams.map(team => {
             if (team.players && Array.isArray(team.players)) {
                 team.players = team.players.map(player => {
@@ -126,7 +126,7 @@ const getTournamentTeamsReport = async (touranmentId) => {
                     return player;
                 });
             }
-            
+
             // Calculate max biddable amount
             // Formula: (Amount left - (min base price × (min players per team - players already bought - 1)))
             // The -1 accounts for the current player being purchased
@@ -134,9 +134,10 @@ const getTournamentTeamsReport = async (touranmentId) => {
             const slotsToFill = Math.max(0, minPlayersPerTeam - playersAlreadyBought - 1);
             const reservedAmount = minBasePrice * slotsToFill;
             const maxBiddableAmount = Math.max(0, (team.remainingBudget || 0) - reservedAmount);
-            
+
             team.maxBiddableAmount = maxBiddableAmount;
-            
+            team.playersCount = playersAlreadyBought;
+
             // Ensure _id is string for strict equality checks in state manager
             if (team._id) {
                 team._id = team._id.toString();
@@ -145,7 +146,7 @@ const getTournamentTeamsReport = async (touranmentId) => {
             return team;
         });
     }
-    
+
     return report;
 }
 
@@ -224,13 +225,13 @@ const getTeamReport = async (teamId) => {
     ]
 
     const teamReport = await Team.aggregate(aggregationPipeline);
-    
+
     // Add base prices to players from tournament categoryBasePrices
     if (teamReport && teamReport.length > 0 && teamReport[0].players) {
         const tournamentId = teamReport[0].tournament?._id;
         if (tournamentId) {
             const tournamentData = await Tournament.findById(tournamentId);
-            
+
             teamReport[0].players = teamReport[0].players.map(player => {
                 if (tournamentData && tournamentData.categoryBasePrices && player.playerCategory) {
                     const basePrice = tournamentData.categoryBasePrices.get(player.playerCategory);
@@ -242,7 +243,7 @@ const getTeamReport = async (teamId) => {
             });
         }
     }
-    
+
     return teamReport;
 }
 
@@ -296,37 +297,37 @@ const bulkCreateTeams = async (teams, touranmentId) => {
         // Check for duplicates in the input data
         const teamNames = teams.map(t => t.name);
         const duplicateNames = teamNames.filter((name, index) => teamNames.indexOf(name) !== index);
-        
+
         if (duplicateNames.length > 0) {
             const err = new Error(`Duplicate team names found in CSV: ${[...new Set(duplicateNames)].join(', ')}`);
             throw err;
         }
-        
+
         // Check for existing teams in database
         const existingTeams = await Team.find({
             touranmentId: touranmentId,
             name: { $in: teamNames }
         });
-        
+
         if (existingTeams.length > 0) {
             const existingNames = existingTeams.map(t => t.name).join(', ');
             const err = new Error(`Teams already exist: ${existingNames}`);
             throw err;
         }
-        
+
         // Create team documents
         const createdTeams = await Team.insertMany(teams);
-        
+
         // Get team IDs
         const teamIds = createdTeams.map(t => t._id);
-        
+
         // Update tournament with team IDs
         await Tournament.findByIdAndUpdate(
             touranmentId,
             { $push: { teams: { $each: teamIds } } },
             { new: true }
         );
-        
+
         return createdTeams;
     } catch (error) {
         throw error;
@@ -343,8 +344,8 @@ const deleteAllTeamsByTournament = async (tournamentId) => {
         throw new Error("Tournament ID is required");
     }
 
-    const result = await Team.deleteMany({ 
-        touranmentId: new mongoose.Types.ObjectId(tournamentId) 
+    const result = await Team.deleteMany({
+        touranmentId: new mongoose.Types.ObjectId(tournamentId)
     });
 
     // Also update the tournament to clear the teams array
@@ -354,7 +355,7 @@ const deleteAllTeamsByTournament = async (tournamentId) => {
         { new: true }
     );
 
-    return { 
+    return {
         deletedCount: result.deletedCount,
         message: `Successfully deleted ${result.deletedCount} teams`
     };

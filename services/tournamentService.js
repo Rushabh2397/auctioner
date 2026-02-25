@@ -230,6 +230,7 @@ const getTournamentExportData = async (tournamentId) => {
             })),
             players: players.map(p => ({
                 _id: p._id,
+                auctionSerialNumber: p.auctionSerialNumber || '',
                 name: p.name,
                 age: p.age || '',
                 photo: p.photo || '',

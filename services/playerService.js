@@ -199,11 +199,18 @@ const bulkCreatePlayers = async (playersData, touranmentId) => {
         name: { $in: playerNames }
     });
 
-    if (existingPlayers.length > 0) {
-        const existingNames = existingPlayers.map(p => p.name).join(', ');
-        const err = new Error(`Players already exist: ${existingNames}`);
-        throw err;
-    }
+    const existingPlayerMap = {};
+    existingPlayers.forEach(p => {
+        existingPlayerMap[p.name.toLowerCase().trim()] = p;
+    });
+
+    // Pre-fetch all teams for this tournament for quick lookup by name
+    const teams = await team.find({ touranmentId: touranmentId });
+    const teamNameMap = {};
+    teams.forEach(t => {
+        teamNameMap[t.name.toLowerCase().trim()] = t._id;
+    });
+    console.log(`[BulkCreate] Tournament: ${touranmentId}, Teams found: ${teams.length}, Team names: [${teams.map(t => t.name).join(', ')}]`);
 
     // Get starting serial number for auto-generation (only used if not provided in CSV)
     const maxSerialPlayer = await players.findOne({ touranmentId: touranmentId })
@@ -212,24 +219,135 @@ const bulkCreatePlayers = async (playersData, touranmentId) => {
 
     let currentSerial = (maxSerialPlayer?.auctionSerialNumber || 0);
 
-    const playersWithSerial = playersData.map(p => {
-        // Use serial number from CSV if provided, otherwise auto-generate
-        if (p.auctionSerialNumber !== undefined && p.auctionSerialNumber !== null && p.auctionSerialNumber !== '') {
-            return {
-                ...p,
-                auctionSerialNumber: Number(p.auctionSerialNumber)
-            };
-        } else {
-            currentSerial++;
-            return {
-                ...p,
-                auctionSerialNumber: currentSerial
-            };
-        }
-    });
+    const newPlayers = [];
+    let updatedCount = 0;
+    const unmatchedTeams = [];
 
-    const createdPlayers = await players.insertMany(playersWithSerial);
-    return createdPlayers;
+    for (const p of playersData) {
+        const existing = existingPlayerMap[p.name.toLowerCase().trim()];
+
+        if (existing) {
+            // Update existing player with all provided fields
+            const updateFields = {};
+
+            if (p.age !== undefined && p.age !== '' && p.age !== 0) updateFields.age = Number(p.age);
+            if (p.photo && p.photo.trim()) updateFields.photo = p.photo.trim();
+            if (p.playerCategory && p.playerCategory.trim()) updateFields.playerCategory = p.playerCategory.trim();
+            if (p.mobile !== undefined && p.mobile !== '' && p.mobile !== 0) updateFields.mobile = Number(p.mobile);
+
+            // Update serial number if provided
+            if (p.auctionSerialNumber !== undefined && p.auctionSerialNumber !== null && p.auctionSerialNumber !== '') {
+                updateFields.auctionSerialNumber = Number(p.auctionSerialNumber);
+            }
+
+            // Update sold status
+            if (p.sold !== undefined && p.sold !== '') {
+                const soldValue = typeof p.sold === 'string'
+                    ? p.sold.toLowerCase() === 'yes' || p.sold.toLowerCase() === 'true'
+                    : Boolean(p.sold);
+                updateFields.sold = soldValue;
+                if (soldValue) {
+                    updateFields.auctionStatus = true;
+                }
+            }
+
+            // Update team by name lookup
+            if (p.teamName && p.teamName.trim() && p.teamName.toLowerCase() !== 'unsold') {
+                const teamId = teamNameMap[p.teamName.toLowerCase().trim()];
+                if (teamId) {
+                    updateFields.teamId = teamId;
+                    console.log(`[BulkCreate] UPDATE: Matched team "${p.teamName}" -> ${teamId} for player "${p.name}"`);
+                } else {
+                    console.log(`[BulkCreate] UPDATE: Team "${p.teamName}" NOT FOUND for player "${p.name}"`);
+                    if (!unmatchedTeams.includes(p.teamName)) unmatchedTeams.push(p.teamName);
+                }
+            }
+
+            // Update amount sold
+            if (p.amtSold !== undefined && p.amtSold !== '' && p.amtSold !== '0' && Number(p.amtSold) > 0) {
+                updateFields.amtSold = Number(p.amtSold);
+            }
+
+            if (Object.keys(updateFields).length > 0) {
+                await players.findByIdAndUpdate(existing._id, { $set: updateFields });
+                updatedCount++;
+            }
+        } else {
+            // Prepare new player for creation
+            let serialNumber;
+            if (p.auctionSerialNumber !== undefined && p.auctionSerialNumber !== null && p.auctionSerialNumber !== '') {
+                const parsed = Number(p.auctionSerialNumber);
+                serialNumber = isNaN(parsed) ? undefined : parsed;
+            }
+            if (!serialNumber) {
+                currentSerial++;
+                serialNumber = currentSerial;
+            }
+
+            // Resolve teamId from teamName if provided
+            let teamId = p.teamId || undefined;
+            if (!teamId && p.teamName && p.teamName.trim() && p.teamName.toLowerCase() !== 'unsold') {
+                const resolvedTeamId = teamNameMap[p.teamName.toLowerCase().trim()];
+                if (resolvedTeamId) {
+                    teamId = resolvedTeamId;
+                    console.log(`[BulkCreate] NEW: Matched team "${p.teamName}" -> ${teamId} for player "${p.name}"`);
+                } else {
+                    console.log(`[BulkCreate] NEW: Team "${p.teamName}" NOT FOUND for player "${p.name}". Available: [${Object.keys(teamNameMap).join(', ')}]`);
+                    if (!unmatchedTeams.includes(p.teamName)) unmatchedTeams.push(p.teamName);
+                }
+            } else if (!p.teamName || !p.teamName.trim() || p.teamName.toLowerCase() === 'unsold') {
+                console.log(`[BulkCreate] NEW: No team for player "${p.name}" (teamName: "${p.teamName || ''}")`)
+            }
+
+            // Resolve sold status — handle string values like 'Yes', 'No', 'true', 'false'
+            let sold = false;
+            if (p.sold !== undefined && p.sold !== null && p.sold !== '') {
+                if (typeof p.sold === 'string') {
+                    const cleanSold = p.sold.replace(/"/g, '').trim().toLowerCase();
+                    sold = cleanSold === 'yes' || cleanSold === 'true';
+                } else {
+                    sold = Boolean(p.sold);
+                }
+            }
+
+            // Resolve amtSold — handle quoted strings and empty values
+            let amtSold = undefined;
+            if (p.amtSold !== undefined && p.amtSold !== null && p.amtSold !== '') {
+                const cleanAmt = typeof p.amtSold === 'string' ? p.amtSold.replace(/"/g, '').trim() : p.amtSold;
+                const parsed = Number(cleanAmt);
+                if (!isNaN(parsed) && parsed > 0) {
+                    amtSold = parsed;
+                }
+            }
+
+            newPlayers.push({
+                name: p.name,
+                age: p.age ? Number(p.age) : undefined,
+                photo: p.photo || undefined,
+                playerCategory: p.playerCategory || undefined,
+                mobile: p.mobile ? Number(p.mobile) : undefined,
+                auctionSerialNumber: serialNumber,
+                touranmentId: touranmentId,
+                teamId: teamId,
+                sold: sold,
+                auctionStatus: sold ? true : false,
+                amtSold: amtSold,
+            });
+        }
+    }
+
+    let createdPlayers = [];
+    if (newPlayers.length > 0) {
+        createdPlayers = await players.insertMany(newPlayers);
+    }
+
+    return {
+        created: createdPlayers.length,
+        updated: updatedCount,
+        total: createdPlayers.length + updatedCount,
+        unmatchedTeams: unmatchedTeams,
+        message: `Created ${createdPlayers.length} new player(s), updated ${updatedCount} existing player(s)${unmatchedTeams.length > 0 ? `. Teams not found: ${unmatchedTeams.join(', ')}` : ''}`
+    };
 }
 
 const resetUnsoldPlayers = async (touranmentId) => {
@@ -271,6 +389,87 @@ const deleteAllPlayersByTournament = async (tournamentId) => {
     };
 };
 
+/**
+ * Bulk update existing players for a tournament from CSV data
+ * Matches players by name + tournamentId, updates auction-related fields
+ * @param {Array} playersData - Array of player update objects
+ * @param {String} touranmentId - Tournament ID
+ * @returns {Object} Update result with counts
+ */
+const bulkUpdatePlayers = async (playersData, touranmentId) => {
+    const notFound = [];
+    let updatedCount = 0;
+
+    // Pre-fetch all teams for this tournament for quick lookup by name
+    const teams = await team.find({ touranmentId: touranmentId });
+    const teamNameMap = {};
+    teams.forEach(t => {
+        teamNameMap[t.name.toLowerCase().trim()] = t._id;
+    });
+
+    for (const playerData of playersData) {
+        // Find the player by name + tournament
+        const existingPlayer = await players.findOne({
+            touranmentId: touranmentId,
+            name: playerData.name
+        });
+
+        if (!existingPlayer) {
+            notFound.push(playerData.name);
+            continue;
+        }
+
+        const updateFields = {};
+
+        // Update sold status
+        if (playerData.sold !== undefined && playerData.sold !== '') {
+            const soldValue = typeof playerData.sold === 'string'
+                ? playerData.sold.toLowerCase() === 'yes' || playerData.sold.toLowerCase() === 'true'
+                : Boolean(playerData.sold);
+            updateFields.sold = soldValue;
+            // If marked as sold, also set auctionStatus to true
+            if (soldValue) {
+                updateFields.auctionStatus = true;
+            }
+        }
+
+        // Update team by name lookup
+        if (playerData.teamName && playerData.teamName.trim() && playerData.teamName.toLowerCase() !== 'unsold') {
+            const teamId = teamNameMap[playerData.teamName.toLowerCase().trim()];
+            if (teamId) {
+                updateFields.teamId = teamId;
+            }
+        }
+
+        // Update amount sold
+        if (playerData.amtSold !== undefined && playerData.amtSold !== '' && playerData.amtSold !== '0') {
+            updateFields.amtSold = Number(playerData.amtSold);
+        }
+
+        // Update category if provided
+        if (playerData.playerCategory && playerData.playerCategory.trim()) {
+            updateFields.playerCategory = playerData.playerCategory.trim();
+        }
+
+        // Update serial number if provided
+        if (playerData.auctionSerialNumber !== undefined && playerData.auctionSerialNumber !== '') {
+            updateFields.auctionSerialNumber = Number(playerData.auctionSerialNumber);
+        }
+
+        // Only update if there are fields to update
+        if (Object.keys(updateFields).length > 0) {
+            await players.findByIdAndUpdate(existingPlayer._id, { $set: updateFields });
+            updatedCount++;
+        }
+    }
+
+    return {
+        updated: updatedCount,
+        notFound: notFound,
+        message: `Successfully updated ${updatedCount} player(s)${notFound.length > 0 ? `. Not found: ${notFound.join(', ')}` : ''}`
+    };
+};
+
 module.exports = {
     registerPlayer,
     allPlayerDetails,
@@ -280,5 +479,6 @@ module.exports = {
     getPlayerCategories,
     bulkCreatePlayers,
     resetUnsoldPlayers,
-    deleteAllPlayersByTournament
+    deleteAllPlayersByTournament,
+    bulkUpdatePlayers
 }

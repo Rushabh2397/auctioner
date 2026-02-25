@@ -27,6 +27,9 @@ playerRouter.post("/bulk-create", authMiddleware, playerController.bulkCreatePla
 // Reset Unsold Players - Protected (Admin and Tournament Host)
 playerRouter.post("/reset-unsold", authMiddleware, roleMiddleware(['boss', 'super_user', 'tournament_host']), playerController.resetUnsoldPlayers);
 
+// Bulk Update Existing Players - Protected
+playerRouter.post("/bulk-update", authMiddleware, playerController.bulkUpdatePlayers);
+
 // Delete All Players for a Tournament - Protected
 playerRouter.post("/delete-all", authMiddleware, playerController.deleteAllPlayers);
 

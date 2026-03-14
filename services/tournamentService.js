@@ -235,6 +235,7 @@ const getTournamentExportData = async (tournamentId) => {
                 age: p.age || '',
                 photo: p.photo || '',
                 playerCategory: p.playerCategory || '',
+                skill: p.skill || '',
                 mobile: p.mobile || '',
                 // Additional fields for reference (not in import format)
                 teamName: p.teamId?.name || 'Unsold',

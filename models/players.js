@@ -6,7 +6,7 @@ const playerSchema = new Schema({
     age: { type: Number },
     gender : { type: String },
     photo: { type: String },
-    skills: [{ type: String }],
+    skill: { type: String },
     mobile: { type: Number },
     email: { type: String },
     address: { type: String },

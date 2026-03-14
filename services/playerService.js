@@ -234,6 +234,7 @@ const bulkCreatePlayers = async (playersData, touranmentId) => {
             if (p.photo && p.photo.trim()) updateFields.photo = p.photo.trim();
             if (p.playerCategory && p.playerCategory.trim()) updateFields.playerCategory = p.playerCategory.trim();
             if (p.mobile !== undefined && p.mobile !== '' && p.mobile !== 0) updateFields.mobile = Number(p.mobile);
+            if (p.skill && p.skill.trim()) updateFields.skill = p.skill.trim();
 
             // Update serial number if provided
             if (p.auctionSerialNumber !== undefined && p.auctionSerialNumber !== null && p.auctionSerialNumber !== '') {
@@ -326,6 +327,7 @@ const bulkCreatePlayers = async (playersData, touranmentId) => {
                 photo: p.photo || undefined,
                 playerCategory: p.playerCategory || undefined,
                 mobile: p.mobile ? Number(p.mobile) : undefined,
+                skill: p.skill ? p.skill.trim() : undefined,
                 auctionSerialNumber: serialNumber,
                 touranmentId: touranmentId,
                 teamId: teamId,
@@ -449,6 +451,11 @@ const bulkUpdatePlayers = async (playersData, touranmentId) => {
         // Update category if provided
         if (playerData.playerCategory && playerData.playerCategory.trim()) {
             updateFields.playerCategory = playerData.playerCategory.trim();
+        }
+
+        // Update skill if provided
+        if (playerData.skill && playerData.skill.trim()) {
+            updateFields.skill = playerData.skill.trim();
         }
 
         // Update serial number if provided

@@ -5,23 +5,31 @@ const team = require("../models/team");
 const whatsappService = require("./whatsappService");
 
 const registerPlayer = async (playerInput) => {
-    const player = await players.findOne({ touranmentId: playerInput.touranmentId, email: playerInput.email })
+    // Check for exact name match within the same tournament
+    const player = await players.findOne({ 
+        touranmentId: playerInput.touranmentId, 
+        name: playerInput.name.trim() 
+    });
+    
     if (player) {
-        const err = new Error("Player already registered!");
-        throw err;
+        throw new Error(`A player with the exact name "${playerInput.name.trim()}" is already registered in this tournament!`);
     }
-    // Get next serial number
-    const maxSerialPlayer = await players.findOne({ touranmentId: playerInput.touranmentId })
-        .sort({ auctionSerialNumber: -1 })
-        .select('auctionSerialNumber');
+    // Determine serial number
+    let finalSerialNumber = playerInput.auctionSerialNumber;
+    if (!finalSerialNumber) {
+        // Get next serial number
+        const maxSerialPlayer = await players.findOne({ touranmentId: playerInput.touranmentId })
+            .sort({ auctionSerialNumber: -1 })
+            .select('auctionSerialNumber');
 
-    const nextSerial = (maxSerialPlayer?.auctionSerialNumber || 0) + 1;
+        finalSerialNumber = (maxSerialPlayer?.auctionSerialNumber || 0) + 1;
+    }
 
     const newPlayer = new players({
         ...playerInput,
-        auctionSerialNumber: nextSerial
+        auctionSerialNumber: finalSerialNumber
     });
-    const savedPlayer = newPlayer.save();
+    const savedPlayer = await newPlayer.save();
     return savedPlayer;
 }
 

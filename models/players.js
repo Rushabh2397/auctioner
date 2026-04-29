@@ -16,7 +16,8 @@ const playerSchema = new Schema({
     auctionStatus: { type: Boolean },
     amtSold: { type: Number },
     playerCategory: { type: String },
-    auctionSerialNumber: { type: Number }
+    auctionSerialNumber: { type: Number },
+    customFields: { type: Map, of: Schema.Types.Mixed }
 }, { collection: "player", timestamps: true })
 
 module.exports = model(playerSchema.options.collection, playerSchema);

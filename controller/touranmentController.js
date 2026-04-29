@@ -101,6 +101,27 @@ const exportTournamentData = async (req, res) => {
     }
 };
 
+const getRegistrationConfig = async (req, res) => {
+    try {
+        // the id is passed in URL params
+        const tournamentId = req.params.id || req.body.tournamentId; 
+        const config = await tournamentService.getRegistrationConfig(tournamentId);
+        return sendSuccess(res, 200, "Registration config fetched successfully", config);
+    } catch (error) {
+        return sendError(res, 400, "Failed to fetch registration config", error);
+    }
+};
+
+const updateRegistrationConfig = async (req, res) => {
+    try {
+        const { tournamentId, configData, userId, userRole } = req.body;
+        const config = await tournamentService.updateRegistrationConfig(tournamentId, configData, userId, userRole);
+        return sendSuccess(res, 200, "Registration config updated successfully", config);
+    } catch (error) {
+        return sendError(res, 400, "Failed to update registration config", error);
+    }
+};
+
 module.exports = {
     addTournamnet,
     getAllTournaments,
@@ -108,5 +129,7 @@ module.exports = {
     updateTournament,
     deleteTournament,
     getAllTournamentHosts,
-    exportTournamentData
+    exportTournamentData,
+    getRegistrationConfig,
+    updateRegistrationConfig
 };

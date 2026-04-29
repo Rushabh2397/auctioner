@@ -24,4 +24,10 @@ tournamentRouter.get("/hosts", authMiddleware, touranmentController.getAllTourna
 // Export Tournament Data (teams and players) - Protected
 tournamentRouter.post("/export", authMiddleware, touranmentController.exportTournamentData);
 
+// Get Public Registration Config - Public
+tournamentRouter.get("/:id/registration-config", touranmentController.getRegistrationConfig);
+
+// Update Registration Config - Protected
+tournamentRouter.post("/update-registration-config", authMiddleware, touranmentController.updateRegistrationConfig);
+
 module.exports = tournamentRouter;

@@ -1,5 +1,6 @@
 const tournament = require("../models/tournament");
 const User = require("../models/user");
+const googleService = require("../utils/googleService");
 
 /**
  * Create a new tournament
@@ -249,6 +250,50 @@ const getTournamentExportData = async (tournamentId) => {
     }
 };
 
+/**
+ * Get tournament public registration config
+ * @param {String} tournamentId - Tournament ID
+ */
+const getRegistrationConfig = async (tournamentId) => {
+    try {
+        const tournamentData = await tournament.findById(tournamentId).select('name registrationFormConfig playerCategories');
+        if (!tournamentData) {
+            throw new Error("Tournament not found");
+        }
+        return tournamentData;
+    } catch (error) {
+        console.error("Error in getRegistrationConfig service:", error);
+        throw error;
+    }
+};
+
+/**
+ * Update tournament registration config
+ */
+const updateRegistrationConfig = async (tournamentId, configData, userId, userRole) => {
+    try {
+        const existingTournament = await tournament.findById(tournamentId);
+        if (!existingTournament) {
+            throw new Error("Tournament not found");
+        }
+
+        if (userRole === 'tournament_host' && existingTournament.tournamentHostId.toString() !== userId) {
+            throw new Error("Unauthorized to update this tournament");
+        }
+
+        if (configData.isActive && configData.googleSheetId) {
+            await googleService.initializeSheetHeaders(configData.googleSheetId, configData);
+        }
+
+        existingTournament.registrationFormConfig = configData;
+        await existingTournament.save();
+        return existingTournament.registrationFormConfig;
+    } catch (error) {
+        console.error("Error in updateRegistrationConfig service:", error);
+        throw error;
+    }
+};
+
 module.exports = {
     createTournament,
     getAllTournaments,
@@ -257,6 +302,8 @@ module.exports = {
     updateTournament,
     deleteTournament,
     getAllTournamentHosts,
-    getTournamentExportData
+    getTournamentExportData,
+    getRegistrationConfig,
+    updateRegistrationConfig
 };
 

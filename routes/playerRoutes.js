@@ -1,10 +1,14 @@
 const express = require('express');
 const playerController = require('../controller/playerController');
 const { authMiddleware, roleMiddleware } = require('../utils/authMiddleware');
+const uploadMiddleware = require('../utils/uploadMiddleware');
 const playerRouter = express.Router();
 
 // Register New Player - Protected
 playerRouter.post("/register", authMiddleware, playerController.registerPlayer);
+
+// Register New Player - Public (From customizable registration link)
+playerRouter.post("/register-public", uploadMiddleware.any(), playerController.registerPlayerPublic);
 
 // Get All Player Details - Public (for viewing)
 playerRouter.post("/all", playerController.allPlayerDetails);
@@ -32,5 +36,14 @@ playerRouter.post("/bulk-update", authMiddleware, playerController.bulkUpdatePla
 
 // Delete All Players for a Tournament - Protected
 playerRouter.post("/delete-all", authMiddleware, playerController.deleteAllPlayers);
+
+// Get Sheet Delta - Protected
+playerRouter.post("/sync-diff", authMiddleware, playerController.getSyncDiff);
+
+// Apply Sheet Delta - Protected
+playerRouter.post("/sync-apply", authMiddleware, playerController.applySync);
+
+// Push DB to Sheet - Protected
+playerRouter.post("/sync-to-sheet", authMiddleware, playerController.syncToSheet);
 
 module.exports = playerRouter;

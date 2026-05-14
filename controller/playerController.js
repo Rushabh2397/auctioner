@@ -227,7 +227,8 @@ const getSyncDiff = async (req, res) => {
 
         const headerMap = {};
         headers.forEach((h, colIdx) => {
-            if (h === 'Name') headerMap[colIdx] = { key: 'name', type: 'standard' };
+            if (h === 'S.No.') headerMap[colIdx] = { key: 'auctionSerialNumber', type: 'standard' };
+            else if (h === 'Name') headerMap[colIdx] = { key: 'name', type: 'standard' };
             else if (h === 'Player ID') headerMap[colIdx] = { key: '_id', type: 'system' };
             else {
                 let found = Object.keys(config.fields || {}).find(k => config.fields[k].label === h || k === h);

@@ -41,7 +41,7 @@ const initializeSheetHeaders = async (spreadsheetId, config) => {
         const sheets = google.sheets({ version: 'v4', auth });
 
         // Initialize Headers
-        const headers = ['Name'];
+        const headers = ['S.No.', 'Name'];
         
         const possibleFields = ['age', 'gender', 'photo', 'mobile', 'email', 'skill', 'address', 'playerCategory'];
         possibleFields.forEach(f => {
@@ -120,8 +120,8 @@ const updateEntireSheetWithPlayers = async (spreadsheetId, config, players) => {
         const sheets = google.sheets({ version: 'v4', auth });
 
         // Calculate mapped rows
-        const rows = players.map(player => {
-            const rowData = [player.name || ''];
+        const rows = players.map((player, idx) => {
+            const rowData = [idx + 1, player.name || ''];
             const possibleFields = ['age', 'gender', 'photo', 'mobile', 'email', 'skill', 'address', 'playerCategory'];
             possibleFields.forEach(f => {
                 if (config.fields && config.fields[f] && config.fields[f].enabled) {

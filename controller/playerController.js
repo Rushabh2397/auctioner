@@ -98,7 +98,16 @@ const registerPlayerPublic = async (req, res) => {
 
         try {
             if (config && config.googleSheetId) {
-                const rowData = [name];
+                // Calculate serial number from existing sheet rows
+                let serialNo = 1;
+                try {
+                    const existingData = await googleService.getSheetData(config.googleSheetId);
+                    serialNo = Math.max(1, existingData.length); // row 1 is header, so data rows = length - 1, next = length
+                } catch (e) {
+                    // If sheet read fails, default to 1
+                }
+
+                const rowData = [serialNo, name];
                 const possibleFields = ['age', 'gender', 'photo', 'mobile', 'email', 'skill', 'address', 'playerCategory'];
                 
                 possibleFields.forEach(f => {

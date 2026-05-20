@@ -1,6 +1,7 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const path = require("path");
 const db = require("../db/index.js");
 const app = express();
 const config = require("../config/index.js");
@@ -26,6 +27,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.use("/api", router);
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // Import and initialize auction socket handlers
 const initAuctionSockets = require("../sockets/auctionSocket");
@@ -36,3 +38,4 @@ server.listen(config.port, () => {
   console.log(`Server listening on port ${config.port}`);
   console.log("Socket.io initialized for real-time auction");
 });
+

@@ -666,6 +666,13 @@ module.exports = (io) => {
       }
     });
 
+    // Overlay: Layout Change Relay
+    // Broadcasts the selected layout to all connected overlay clients in the room
+    socket.on("overlay:layout_change", ({ tournamentId, layout }) => {
+      console.log(`[overlay] Layout change to "${layout}" for tournament ${tournamentId}`);
+      auctionNamespace.to(tournamentId).emit("overlay:layout_change", { layout });
+    });
+
     // Disconnect
     socket.on("disconnect", async () => {
       console.log(`Socket disconnected: ${socket.id}`);

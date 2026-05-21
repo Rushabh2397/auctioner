@@ -1,7 +1,11 @@
 const express = require('express');
 const teamController = require('../controller/teamController');
 const { authMiddleware } = require('../utils/authMiddleware');
+const uploadMiddleware = require('../utils/uploadMiddleware');
 const teamRouter = express.Router();
+
+// Register New Team - Public (for public team registration form)
+teamRouter.post("/register-public", uploadMiddleware.any(), teamController.registerTeamPublic);
 
 // Register New Team - Protected
 teamRouter.post("/register", authMiddleware, teamController.addTeam);

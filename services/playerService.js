@@ -485,6 +485,46 @@ const bulkUpdatePlayers = async (playersData, touranmentId) => {
     };
 };
 
+/**
+ * Get stats for the auction overlay
+ * @param {String} touranmentId - Tournament ID
+ * @returns {Object} Top 5 players and last 5 sold players
+ */
+const getOverlayStats = async (touranmentId) => {
+    // Top 5 highest bidded players
+    const topPlayers = await players.find({
+        touranmentId: touranmentId,
+        sold: true
+    })
+    .sort({ amtSold: -1 })
+    .limit(5)
+    .populate('teamId', 'name');
+
+    // Last 5 sold players (recently sold)
+    const recentPlayers = await players.find({
+        touranmentId: touranmentId,
+        sold: true
+    })
+    .sort({ updatedAt: -1 })
+    .limit(5)
+    .populate('teamId', 'name');
+
+    const formatPlayers = (playerList) => {
+        return playerList.map(p => {
+            const playerObj = p.toObject();
+            if (playerObj.teamId && playerObj.teamId.name) {
+                playerObj.teamName = playerObj.teamId.name;
+            }
+            return playerObj;
+        });
+    };
+
+    return {
+        topPlayers: formatPlayers(topPlayers),
+        recentPlayers: formatPlayers(recentPlayers)
+    };
+};
+
 module.exports = {
     registerPlayer,
     allPlayerDetails,
@@ -495,5 +535,6 @@ module.exports = {
     bulkCreatePlayers,
     resetUnsoldPlayers,
     deleteAllPlayersByTournament,
-    bulkUpdatePlayers
+    bulkUpdatePlayers,
+    getOverlayStats
 }

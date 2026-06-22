@@ -336,6 +336,20 @@ const syncToSheet = async (req, res) => {
     }
 };
 
+const getOverlayStats = async (req, res) => {
+    try {
+        const { touranmentId, tournamentId } = req.body;
+        const tId = touranmentId || tournamentId;
+        if (!tId) {
+            return sendError(res, 400, "Tournament ID is required!");
+        }
+        const stats = await playerService.getOverlayStats(tId);
+        return sendSuccess(res, 200, "Overlay stats fetched successfully!", stats);
+    } catch (error) {
+        return sendError(res, 400, "Failed to fetch overlay stats!", error);
+    }
+}
+
 module.exports = {
     registerPlayer,
     registerPlayerPublic,
@@ -350,5 +364,6 @@ module.exports = {
     bulkUpdatePlayers,
     getSyncDiff,
     applySync,
-    syncToSheet
+    syncToSheet,
+    getOverlayStats
 };

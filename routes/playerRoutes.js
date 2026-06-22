@@ -46,4 +46,7 @@ playerRouter.post("/sync-apply", authMiddleware, playerController.applySync);
 // Push DB to Sheet - Protected
 playerRouter.post("/sync-to-sheet", authMiddleware, playerController.syncToSheet);
 
+// Get Overlay Stats - Public (for overlay marquee and top players)
+playerRouter.post("/overlay-stats", playerController.getOverlayStats);
+
 module.exports = playerRouter;

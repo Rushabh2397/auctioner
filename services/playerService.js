@@ -36,6 +36,7 @@ const registerPlayer = async (playerInput) => {
 const allPlayerDetails = async (touranmentId) => {
     // Populate teamId to get team name for sold players
     const playerDetails = await players.find({ touranmentId: touranmentId })
+        .sort({ auctionSerialNumber: 1 })
         .populate('teamId', 'name');
 
     // Fetch tournament to get base prices for each category
